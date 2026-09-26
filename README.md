@@ -4,6 +4,7 @@ Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) 
 
 - **Pages, catégories, archives (CPT)** : lister, lire la fiche complète d'une page (SEO, indexation, scores, historique, problèmes de crawl), créer, modifier.
 - **Historique des modifications** : lire et ajouter des événements (site, page, catégorie, archive) pour mesurer l'effet de chaque changement sur le trafic.
+- **Search Console, GA4, Bing Webmaster, Merchant Center, YouTube** : interrogés en direct avec les connexions déjà faites dans GPSEM, sans rien reconnecter. Search Console et GA4 acceptent des requêtes libres (dimensions, métriques, filtres, périodes).
 - **Audit SEO complet** : sections collectées à la demande, rapports, scores, plan d'action priorisé avec gain estimé, suivi des actions.
 - **Screaming Frog** : problèmes par catégorie, plan d'action, rapport par problème, problèmes d'une page.
 - **Analyses** : suggestions de maillage interne, NavRank / ClickRank, mots-clés et analyse sémantique, cartographie sémantique du site.

@@ -35,6 +35,11 @@ Lire beaucoup de données par étapes : les réponses volumineuses sont résumé
 - cartographie sémantique : getSemanticMap (résumé) → cluster=…, q=…, page_id=…, sort/order, limit/page ;
 - listes (pages, mots-clés, contenus, historique) : limit et page, meta.total donne le volume.
 
+Données de trafic en direct, avec les connexions déjà faites dans GPSEM (rien à reconnecter) : querySearchConsole (dimensions query, page, date,
+device, country ; search_type=discover pour Discover, qui n'accepte que page, date et country), queryAnalytics (rapport GA4 libre : dimensions et
+métriques GA4), queryBing, queryMerchant, queryYoutube. Une erreur source_not_connected signifie que la source n'est pas connectée pour ce site :
+le signaler à l'utilisateur (connexion à faire une fois dans GPSEM) plutôt que d'insister.
+
 Justifier les recommandations : searchKnowledge cherche dans la documentation Google Search Central (en français) ; citer l'URL de la source.
 Les actions d'audit et les rapports de problèmes Screaming Frog portent déjà leurs references.
 

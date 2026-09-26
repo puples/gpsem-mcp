@@ -65,6 +65,14 @@ Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM,
 - « Lance un crawl Screaming Frog, puis fais l'audit Opquast du site à partir du crawl, avec un commentaire pour chaque règle. »
 - « Quelles pages mériteraient des backlinks ce mois-ci ? Prépare une commande MyBack.link de 3 articles, je valide avant. »
 
+## Catalogue des rapports
+
+À la connexion, le serveur envoie à l'assistant la liste de tous les rapports disponibles, dans ses consignes : chaque section / question de l'audit complet (par chapitre), Screaming Frog, NavRank / ClickRank, Opquast, sources de données, analyses, avec l'outil et les arguments à utiliser. Avec `GPSEM_SITE_ID`, la liste est celle du site : rapports indisponibles signalés (source non connectée, pas de crawl…) et problèmes Screaming Frog relevés au dernier crawl.
+
+Le catalogue complet est aussi exposé :
+- en outils : `listReports` (général) et `listReportsForSite` ;
+- en ressources MCP : `gpsem://rapports` et `gpsem://sites/{siteId}/rapports`.
+
 ## Bonnes pratiques intégrées
 
 - **Données par étapes** : les grosses réponses sont résumées ou paginées (sections d'audit : `data_index` puis `data=` / `bloc=` ; cartographie : `cluster=`, `q=`, `page_id=` ; listes : `limit`, `page`). Au-delà de `GPSEM_MAX_CHARS`, la réponse est tronquée avec une indication pour affiner la demande.

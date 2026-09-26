@@ -14,7 +14,9 @@
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema, ListResourcesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync } from 'node:fs';
 
 const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
@@ -25,6 +27,10 @@ const MAX_CHARS = Number(process.env.GPSEM_MAX_CHARS) || 60000;
 const METHODES = ['get', 'post', 'put', 'patch', 'delete'];
 
 const INSTRUCTIONS = `GPSEM est une plateforme SEO. Ces outils lisent et modifient les données d'un compte GPSEM (entreprise, sites, pages, audits).
+
+Catalogue des rapports : listReportsForSite (ou listReports) donne tous les rapports disponibles — chaque section / question de l'audit complet,
+chaque problème Screaming Frog relevé, NavRank / ClickRank, Opquast, sources de données — avec l'outil et les arguments à utiliser, et ce qui est
+disponible pour le site. Le résumé ci-dessous (fin des consignes) liste les rapports ; le catalogue complet est aussi la ressource gpsem://rapports.
 
 Démarrage : getMe (entreprise du token, quota de sites), puis listSites avec l'id de l'entreprise pour obtenir les siteId (identifiants encodés, ex. « Wl2Ljya96q »).
 Les IDs de page, catégorie (category_id) et archive (cpt_id) sont numériques ; ils viennent de listPages, listCategories et listArchives.
@@ -214,6 +220,37 @@ function texteReponse({ status, body }) {
   return status >= 400 ? `Erreur HTTP ${status}\n${texte}` : texte;
 }
 
+/**
+ * Résumé du catalogue des rapports, ajouté aux consignes envoyées au client à la connexion : l'assistant sait d'emblée
+ * quels rapports existent (dont chaque section / question de l'audit complet) et quel outil appeler.
+ */
+async function resumeRapports() {
+  try {
+    const r = await appeler('get', SITE_PAR_DEFAUT ? `/sites/${encodeURIComponent(SITE_PAR_DEFAUT)}/rapports` : '/rapports');
+    if (r.status !== 200 || typeof r.body !== 'object') return '';
+    const d = r.body.data || {};
+    const lignes = ['\n\nRAPPORTS DISPONIBLES' + (d.site ? ` pour ${d.site.name} (siteId ${d.site.id})` : '') + ' — outil(arguments) :'];
+    for (const g of d.groups || []) {
+      lignes.push(`\n${g.group}`);
+      let chapitre = null;
+      for (const x of g.reports || []) {
+        if (x.chapter && x.chapter !== chapitre) { chapitre = x.chapter; lignes.push(`  ${chapitre}`); }
+        const args = Object.entries(x.arguments || {}).filter(([k]) => k !== 'siteId').map(([k, v]) => `${k}=${v}`).join(', ');
+        const dispo = x.available === false ? ' [indisponible pour ce site]' : '';
+        lignes.push(`  - ${x.title} → ${x.tool}(${args})${dispo}`);
+      }
+    }
+    const sf = d.screaming_frog_issues?.found;
+    if (sf && sf.length) {
+      lignes.push(`\nProblèmes Screaming Frog relevés au dernier crawl (getScreamingFrogIssue code=…) : `
+        + sf.slice(0, 40).map((p) => `${p.code} (${p.urls} URL, P${p.priority})`).join(', ') + (sf.length > 40 ? `… et ${sf.length - 40} autres` : ''));
+    }
+    return lignes.join('\n');
+  } catch {
+    return '';
+  }
+}
+
 let outilsCache = null;
 async function outils() {
   if (outilsCache) return outilsCache;
@@ -235,9 +272,30 @@ async function main() {
     process.exit(1);
   }
 
-  const server = new Server({ name: 'gpsem', version: VERSION }, { capabilities: { tools: {} }, instructions: INSTRUCTIONS });
+  const server = new Server({ name: 'gpsem', version: VERSION },
+    { capabilities: { tools: {}, resources: {} }, instructions: INSTRUCTIONS + (await resumeRapports()) });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: (await outils()).map((o) => o.definition) }));
+
+  // Catalogue des rapports en ressources MCP : général, et par site si GPSEM_SITE_ID est défini
+  const ressources = [{ uri: 'gpsem://rapports', chemin: '/rapports', name: 'Catalogue des rapports GPSEM',
+    description: 'Tous les rapports lisibles : sections de l\'audit complet, problèmes Screaming Frog, NavRank, Opquast, sources, analyses, avec l\'outil à appeler.' }];
+  if (SITE_PAR_DEFAUT) {
+    ressources.push({ uri: `gpsem://sites/${SITE_PAR_DEFAUT}/rapports`, chemin: `/sites/${encodeURIComponent(SITE_PAR_DEFAUT)}/rapports`,
+      name: 'Rapports disponibles pour le site par défaut', description: 'Disponibilité des sources et rapports, problèmes Screaming Frog relevés.' });
+  }
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: ressources.map(({ uri, name, description }) => ({ uri, name, description, mimeType: 'application/json' })),
+  }));
+  server.setRequestHandler(ReadResourceRequestSchema, async (requete) => {
+    const uri = requete.params.uri;
+    const connue = ressources.find((r) => r.uri === uri);
+    const site = uri.match(/^gpsem:\/\/sites\/([^/]+)\/rapports$/);
+    const chemin = connue ? connue.chemin : site ? `/sites/${encodeURIComponent(site[1])}/rapports` : null;
+    if (!chemin) throw new Error(`Ressource inconnue : ${uri}`);
+    const r = await appeler('get', chemin);
+    return { contents: [{ uri, mimeType: 'application/json', text: typeof r.body === 'string' ? r.body : JSON.stringify(r.body, null, 1) }] };
+  });
 
   server.setRequestHandler(CallToolRequestSchema, async (requete) => {
     const outil = (await outils()).find((o) => o.definition.name === requete.params.name);

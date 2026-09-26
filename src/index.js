@@ -35,6 +35,9 @@ Lire beaucoup de données par étapes : les réponses volumineuses sont résumé
 - cartographie sémantique : getSemanticMap (résumé) → cluster=…, q=…, page_id=…, sort/order, limit/page ;
 - listes (pages, mots-clés, contenus, historique) : limit et page, meta.total donne le volume.
 
+Justifier les recommandations : searchKnowledge cherche dans la documentation Google Search Central (en français) ; citer l'URL de la source.
+Les actions d'audit et les rapports de problèmes Screaming Frog portent déjà leurs references.
+
 Tracer chaque modification dans l'historique (addSiteHistorique) : c'est ce qui permet à GPSEM de mesurer l'effet des changements sur le trafic.
 Lire d'abord getHistoriqueCodes et choisir le code le plus précis de la cible (100 site, 300 page, 310 catégorie, 320 archive) ; sinon le code générique
 (100-09-001, 300-09-001, 310-09-001, 320-09-001) avec une description claire et l'avant / après dans details. updatePage et createPage écrivent leur historique eux-mêmes.

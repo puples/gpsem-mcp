@@ -47,11 +47,22 @@ Tracer chaque modification dans l'historique (addSiteHistorique) : c'est ce qui 
 Lire d'abord getHistoriqueCodes et choisir le code le plus précis de la cible (100 site, 300 page, 310 catégorie, 320 archive) ; sinon le code générique
 (100-09-001, 300-09-001, 310-09-001, 320-09-001) avec une description claire et l'avant / après dans details. updatePage et createPage écrivent leur historique eux-mêmes.
 
+Audit technique à jour : launchScreamingFrogCrawl lance un crawl (de quelques minutes à quelques heures) ; suivre listScreamingFrogCrawls jusqu'au statut
+« importe », puis lire getScreamingFrogDashboard, listScreamingFrogActions, getScreamingFrogIssue. createAuditReport régénère ensuite l'audit complet.
+
+Audit Opquast (qualité web, 240 règles) : createOpquastAudit, puis getOpquastAudit (catégories). Marquer d'abord les catégories hors périmètre
+(updateOpquastCategory applicable=false, ex. E-commerce ou Newsletter si le site n'en a pas). Pour chaque catégorie restante : getOpquastAudit avec
+category_id, évaluer chaque règle sur des preuves (crawl Screaming Frog : getScreamingFrogDashboard, getScreamingFrogIssue, getScreamingFrogPage ;
+pages : getPage avec content=1, listPages ; mentions légales : getLegalNotice ; paramètres du site) et répondre par lots avec answerOpquastRules :
+result conforme / non_conforme et un commentaire qui dit ce qui a été vérifié (pages, source) et, si non conforme, la correction attendue.
+Une règle qui ne peut pas être vérifiée avec les données disponibles reste conforme par défaut mais reçoit un commentaire « à vérifier manuellement ».
+Terminer chaque catégorie par une synthèse (updateOpquastCategory comment). Toutes les réponses restent modifiables dans GPSEM (lien renvoyé).
+
 Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autorisé, plafonds, dépense du mois, crédit, coût des options, ancres déjà utilisées),
 choisir les pages cibles à partir des données GPSEM (pages performantes fragilisées, mots-clés en page 2, backlinks perdus), puis présenter la commande
 (URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.
 
-Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
+Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), launchScreamingFrogCrawl (charge le serveur de crawl), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
 createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateLegalNotice.
 Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut pending à relire.`;
 

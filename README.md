@@ -6,7 +6,8 @@ Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) 
 - **Historique des modifications** : lire et ajouter des événements (site, page, catégorie, archive) pour mesurer l'effet de chaque changement sur le trafic.
 - **Search Console, GA4, Bing Webmaster, Merchant Center, YouTube** : interrogés en direct avec les connexions déjà faites dans GPSEM, sans rien reconnecter. Search Console et GA4 acceptent des requêtes libres (dimensions, métriques, filtres, périodes).
 - **Audit SEO complet** : sections collectées à la demande, rapports, scores, plan d'action priorisé avec gain estimé, suivi des actions.
-- **Screaming Frog** : problèmes par catégorie, plan d'action, rapport par problème, problèmes d'une page.
+- **Screaming Frog** : lancer un crawl, problèmes par catégorie, plan d'action, rapport par problème (avec la documentation Google), problèmes d'une page.
+- **Audit Opquast** : créer un audit, parcourir les 240 règles par catégorie, y répondre (conforme / non conforme) avec un commentaire argumenté à partir du crawl et des pages, marquer les catégories hors périmètre, rédiger la synthèse de chaque catégorie.
 - **Analyses** : suggestions de maillage interne, NavRank / ClickRank, mots-clés et analyse sémantique, cartographie sémantique du site.
 - **Rédaction** : idées de contenu, rédaction automatique depuis une expression, une ou plusieurs URL (réécriture d'une page concurrente), un mot-clé.
 - **Synchronisation CMS** : envoyer une page vers WordPress, réimporter une page, synchroniser tout le site.
@@ -61,6 +62,7 @@ Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM,
 - « Rédige un article à partir de cette page concurrente : https://… »
 - « Les mentions légales de mon site sont-elles complètes ? Complète l'hébergeur et le directeur de la publication. »
 - « Crée un nouveau site pour https://exemple.fr si mon abonnement le permet. »
+- « Lance un crawl Screaming Frog, puis fais l'audit Opquast du site à partir du crawl, avec un commentaire pour chaque règle. »
 - « Quelles pages mériteraient des backlinks ce mois-ci ? Prépare une commande MyBack.link de 3 articles, je valide avant. »
 
 ## Bonnes pratiques intégrées

@@ -39,7 +39,11 @@ Tracer chaque modification dans l'historique (addSiteHistorique) : c'est ce qui 
 Lire d'abord getHistoriqueCodes et choisir le code le plus précis de la cible (100 site, 300 page, 310 catégorie, 320 archive) ; sinon le code générique
 (100-09-001, 300-09-001, 310-09-001, 320-09-001) avec une description claire et l'avant / après dans details. updatePage et createPage écrivent leur historique eux-mêmes.
 
-Actions à effet réel (demander confirmation à l'utilisateur avant) : createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
+Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autorisé, plafonds, dépense du mois, crédit, coût des options, ancres déjà utilisées),
+choisir les pages cibles à partir des données GPSEM (pages performantes fragilisées, mots-clés en page 2, backlinks perdus), puis présenter la commande
+(URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.
+
+Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
 createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateLegalNotice.
 Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut pending à relire.`;
 

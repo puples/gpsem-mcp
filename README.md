@@ -9,6 +9,7 @@ Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) 
 - **Analyses** : suggestions de maillage interne, NavRank / ClickRank, mots-clés et analyse sémantique, cartographie sémantique du site.
 - **Rédaction** : idées de contenu, rédaction automatique depuis une expression, une ou plusieurs URL (réécriture d'une page concurrente), un mot-clé.
 - **Synchronisation CMS** : envoyer une page vers WordPress, réimporter une page, synchroniser tout le site.
+- **Backlinks (MyBack.link)** : crédit, coût des options, ancres déjà utilisées, historique des commandes, commande de backlinks vers vos pages. L'achat via le MCP est désactivé par défaut : il s'active dans GPSEM, paramètres MyBack.link de l'entreprise, avec un plafond mensuel et un nombre maximal d'articles par commande.
 - **Compte** : ajout de site (dans la limite de l'abonnement), coordonnées de l'entreprise, paramètres du site, mentions légales.
 
 Les outils sont générés au démarrage depuis la spécification OpenAPI de l'API GPSEM : toute nouvelle route de l'API devient un outil, sans mise à jour du paquet.
@@ -59,6 +60,7 @@ Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM,
 - « Rédige un article à partir de cette page concurrente : https://… »
 - « Les mentions légales de mon site sont-elles complètes ? Complète l'hébergeur et le directeur de la publication. »
 - « Crée un nouveau site pour https://exemple.fr si mon abonnement le permet. »
+- « Quelles pages mériteraient des backlinks ce mois-ci ? Prépare une commande MyBack.link de 3 articles, je valide avant. »
 
 ## Bonnes pratiques intégrées
 

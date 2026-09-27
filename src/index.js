@@ -54,7 +54,12 @@ Lire d'abord getHistoriqueCodes et choisir le code le plus précis de la cible (
 (100-09-001, 300-09-001, 310-09-001, 320-09-001) avec une description claire et l'avant / après dans details. updatePage et createPage écrivent leur historique eux-mêmes.
 
 Audit technique à jour : launchScreamingFrogCrawl lance un crawl (de quelques minutes à quelques heures) ; suivre listScreamingFrogCrawls jusqu'au statut
-« importe », puis lire getScreamingFrogDashboard, listScreamingFrogActions, getScreamingFrogIssue. createAuditReport régénère ensuite l'audit complet.
+« importe », puis lire getScreamingFrogDashboard, listScreamingFrogActions, getScreamingFrogIssue. createAuditReport régénère ensuite l'audit.
+
+Rapports d'audit (createAuditReport, type) : resultats = informations générales et résultats (visibilité, positions, trafic, comportement,
+concurrence, historique, marque dans le Knowledge Graph) ; technique = crawl, indexation, maillage, contenus, performance, données structurées ;
+complet = toutes les sections ; knowledge_graph = entités seules (marque, auteurs, données structurées). Chaque rapport renvoie ses liens
+aperçu, PDF et PowerPoint (links.pptx) à transmettre à l'utilisateur.
 
 Audit Opquast (qualité web, 240 règles) : createOpquastAudit, puis getOpquastAudit (catégories). Marquer d'abord les catégories hors périmètre
 (updateOpquastCategory applicable=false, ex. E-commerce ou Newsletter si le site n'en a pas). Pour chaque catégorie restante : getOpquastAudit avec

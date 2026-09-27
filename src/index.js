@@ -46,6 +46,11 @@ device, country ; search_type=discover pour Discover, qui n'accepte que page, da
 métriques GA4), queryBing, queryMerchant, queryYoutube. Une erreur source_not_connected signifie que la source n'est pas connectée pour ce site :
 le signaler à l'utilisateur (connexion à faire une fois dans GPSEM) plutôt que d'insister.
 
+Outils GPSEM (tableaux des écrans et de la boîte à outils) : listGpsemTools donne le catalogue groupé par thème — Indexation (pages non
+indexées, crawlées non indexées, non crawlées depuis N jours, indexées à risque, désindexations récentes, non indexées avec backlinks),
+Contenus et pruning, Mots-clés et Search Console (distribution, évolutions, questions, pages, cannibalisation), Maillage (orphelines, pages
+à mailler, clusters), Netlinking, Analytics et conversions, Planning éditorial — puis getGpsemTool(cle=…) pour les données (limit, page).
+
 Justifier les recommandations : searchKnowledge cherche dans la documentation Google Search Central (en français) ; citer l'URL de la source.
 Les actions d'audit et les rapports de problèmes Screaming Frog portent déjà leurs references.
 

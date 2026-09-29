@@ -58,6 +58,13 @@ Tracer chaque modification dans l'historique (addSiteHistorique) : c'est ce qui 
 Lire d'abord getHistoriqueCodes et choisir le code le plus précis de la cible (100 site, 300 page, 310 catégorie, 320 archive) ; sinon le code générique
 (100-09-001, 300-09-001, 310-09-001, 320-09-001) avec une description claire et l'avant / après dans details. updatePage et createPage écrivent leur historique eux-mêmes.
 
+Maillage interne — chaque lien ajouté doit être tracé, page par page : addSiteHistorique code=300-02-003, page_id = la page qui REÇOIT le lien,
+source_page_id = la page qui CONTIENT le lien, date = jour de mise en ligne, details.ancre = l'ancre (une entrée par lien). GPSEM peut alors dire
+« la page 123 a reçu un lien de la page 456 le 12/09 » et vérifier si Google l'a recrawlée ou indexée ensuite : getPageLinksReceived (par page),
+outil liens_internes_recents (tout le site). Avant de proposer du maillage, lire l'historique de la page (getPage → history, links_received).
+
+Stats rapides d'indexation (getGpsemTool) : activite_google_par_jour, derniers_crawls, dernieres_indexations, desindexations_recentes, indexees_a_risque.
+
 Audit technique à jour : launchScreamingFrogCrawl lance un crawl (de quelques minutes à quelques heures) ; suivre listScreamingFrogCrawls jusqu'au statut
 « importe », puis lire getScreamingFrogDashboard, listScreamingFrogActions, getScreamingFrogIssue. createAuditReport régénère ensuite l'audit.
 

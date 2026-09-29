@@ -3,10 +3,10 @@
 Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) : il donne à un assistant IA (Claude, ChatGPT, Cursor, Windsurf…) l'accès à votre compte GPSEM.
 
 - **Pages, catégories, archives (CPT)** : lister, lire la fiche complète d'une page (SEO, indexation, scores, historique, problèmes de crawl), créer, modifier.
-- **Historique des modifications** : lire et ajouter des événements (site, page, catégorie, archive) pour mesurer l'effet de chaque changement sur le trafic.
+- **Historique des modifications** : lire et ajouter des événements (site, page, catégorie, archive), dont chaque lien interne avec sa page source et sa date, pour mesurer l’effet de chaque changement sur le crawl, l’indexation et le trafic.
 - **Search Console, GA4, Bing Webmaster, Merchant Center, YouTube** : interrogés en direct avec les connexions déjà faites dans GPSEM, sans rien reconnecter. Search Console et GA4 acceptent des requêtes libres (dimensions, métriques, filtres, périodes).
 - **Audit SEO** : sections collectées à la demande ; rapports résultats, technique, complet ou Knowledge Graph, en aperçu, PDF et PowerPoint ; scores, plan d’action priorisé avec gain estimé, suivi des actions.
-- **Outils GPSEM** : 38 tableaux des écrans et de la boîte à outils, groupés par thème (indexation, contenus et pruning, mots-clés et Search Console, maillage, netlinking, analytics et conversions, planning éditorial).
+- **Outils GPSEM** : 60 tableaux et croisements (opportunités, concurrence Semrush, saisonnalité, motifs des non indexées, activité de Google, liens internes datés…) des écrans et de la boîte à outils, groupés par thème (indexation, contenus et pruning, mots-clés et Search Console, maillage, netlinking, analytics et conversions, planning éditorial).
 - **Screaming Frog** : lancer un crawl, problèmes par catégorie, plan d'action, rapport par problème (avec la documentation Google), problèmes d'une page.
 - **Audit Opquast** : créer un audit, parcourir les 240 règles par catégorie, y répondre (conforme / non conforme) avec un commentaire argumenté à partir du crawl et des pages, marquer les catégories hors périmètre, rédiger la synthèse de chaque catégorie.
 - **Analyses** : suggestions de maillage interne, NavRank / ClickRank, mots-clés et analyse sémantique, cartographie sémantique du site.

@@ -51,6 +51,11 @@ indexées, crawlées non indexées, non crawlées depuis N jours, indexées à r
 Contenus et pruning, Mots-clés et Search Console (distribution, évolutions, questions, pages, cannibalisation), Maillage (orphelines, pages
 à mailler, clusters), Netlinking, Analytics et conversions, Planning éditorial — puis getGpsemTool(cle=…) pour les données (limit, page).
 
+Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
+analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),
+puis addExternalContentIdea (idée seule) ou writeFromExternalContent (lance la rédaction : demander confirmation) ; listWatchedTopics,
+watchTopic, refreshTopicInsights, unwatchTopic pour la veille récurrente.
+
 Justifier les recommandations : searchKnowledge cherche dans la documentation Google Search Central (en français) ; citer l'URL de la source.
 Les actions d'audit et les rapports de problèmes Screaming Frog portent déjà leurs references.
 
@@ -85,7 +90,7 @@ Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autor
 choisir les pages cibles à partir des données GPSEM (pages performantes fragilisées, mots-clés en page 2, backlinks perdus), puis présenter la commande
 (URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.
 
-Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), launchScreamingFrogCrawl (charge le serveur de crawl), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
+Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
 createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateLegalNotice.
 Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut pending à relire.`;
 

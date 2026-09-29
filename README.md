@@ -10,6 +10,7 @@ Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) 
 - **Screaming Frog** : lancer un crawl, problèmes par catégorie, plan d'action, rapport par problème (avec la documentation Google), problèmes d'une page.
 - **Audit Opquast** : créer un audit, parcourir les 240 règles par catégorie, y répondre (conforme / non conforme) avec un commentaire argumenté à partir du crawl et des pages, marquer les catégories hors périmètre, rédiger la synthèse de chaque catégorie.
 - **Analyses** : suggestions de maillage interne, NavRank / ClickRank, mots-clés et analyse sémantique, cartographie sémantique du site.
+- **Veille et tendances** : sujets en hausse pour le site, analyse d’une page externe (concurrent, actualité) pour savoir si elle a du sens pour le site, ajout en idée ou rédaction, topics surveillés et leurs insights.
 - **Rédaction** : idées de contenu, rédaction automatique depuis une expression, une ou plusieurs URL (réécriture d'une page concurrente), un mot-clé.
 - **Synchronisation CMS** : envoyer une page vers WordPress, réimporter une page, synchroniser tout le site.
 - **Backlinks (MyBack.link)** : crédit, coût des options, ancres déjà utilisées, historique des commandes, commande de backlinks vers vos pages. L'achat via le MCP est désactivé par défaut : il s'active dans GPSEM, paramètres MyBack.link de l'entreprise, avec un plafond mensuel et un nombre maximal d'articles par commande.

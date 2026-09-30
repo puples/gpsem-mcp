@@ -72,6 +72,10 @@ Stats rapides d'indexation (getGpsemTool) : activite_google_par_jour, derniers_c
 
 Audit technique à jour : launchScreamingFrogCrawl lance un crawl (de quelques minutes à quelques heures) ; suivre listScreamingFrogCrawls jusqu'au statut
 « importe », puis lire getScreamingFrogDashboard, listScreamingFrogActions, getScreamingFrogIssue. createAuditReport régénère ensuite l'audit.
+Liens cassés ou redirigés : ne pas corriger les pages une à une, utiliser runLinkCorrection (type 404 = retire les liens vers des 404/410, 301 = remplace
+les liens redirigés en 301 par leur destination, boucle = retire les liens vers des boucles de redirection) sur le dernier crawl. Lire d'abord
+listLinkCorrections : une seule correction à la fois par site (409 correction_running, ex. « 404 en cours de nettoyage »), ne pas relancer
+une correction en cours ni une correction déjà terminée depuis le dernier crawl. Suivre listLinkCorrections jusqu'à termine / erreur.
 
 Rapports d'audit (createAuditReport, type) : resultats = informations générales et résultats (visibilité, positions, trafic, comportement,
 concurrence, historique, marque dans le Knowledge Graph) ; technique = crawl, indexation, maillage, contenus, performance, données structurées ;
@@ -90,7 +94,7 @@ Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autor
 choisir les pages cibles à partir des données GPSEM (pages performantes fragilisées, mots-clés en page 2, backlinks perdus), puis présenter la commande
 (URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.
 
-Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
+Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), runLinkCorrection (modifie les contenus et les renvoie au CMS), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
 createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateLegalNotice.
 Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut pending à relire.`;
 

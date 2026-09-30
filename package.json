@@ -1,6 +1,6 @@
 {
   "name": "gpsem-mcp",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Serveur MCP de GPSEM : pages, historique des modifications, audit SEO complet, Screaming Frog, maillage, NavRank / ClickRank, analyse sémantique, rédaction et synchronisation CMS, pour les assistants IA.",
   "type": "module",
   "bin": {

@@ -72,8 +72,8 @@ Stats rapides d'indexation (getGpsemTool) : activite_google_par_jour, derniers_c
 
 Audit technique à jour : launchScreamingFrogCrawl lance un crawl (de quelques minutes à quelques heures) ; suivre listScreamingFrogCrawls jusqu'au statut
 « importe », puis lire getScreamingFrogDashboard, listScreamingFrogActions, getScreamingFrogIssue. createAuditReport régénère ensuite l'audit.
-Liens cassés ou redirigés : ne pas corriger les pages une à une, utiliser runLinkCorrection (type 404 = retire les liens vers des 404/410, 301 = remplace
-les liens redirigés en 301 par leur destination, boucle = retire les liens vers des boucles de redirection) sur le dernier crawl. Lire d'abord
+Liens cassés ou redirigés : ne pas corriger les pages une à une, utiliser runLinkCorrection (type 404 = retire les liens internes vers des 404/410, 301 = remplace
+les liens internes redirigés en 301 par leur destination finale (liens externes jamais touchés), boucle = retire les liens vers des boucles de redirection) sur le dernier crawl. Lire d'abord
 listLinkCorrections : une seule correction à la fois par site (409 correction_running, ex. « 404 en cours de nettoyage »), ne pas relancer
 une correction en cours ni une correction déjà terminée depuis le dernier crawl. Suivre listLinkCorrections jusqu'à termine / erreur.
 

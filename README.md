@@ -12,7 +12,8 @@ Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) 
 - **Analyses** : suggestions de maillage interne, NavRank / ClickRank, mots-clés et analyse sémantique, cartographie sémantique du site.
 - **Veille et tendances** : sujets en hausse pour le site, analyse d’une page externe (concurrent, actualité) pour savoir si elle a du sens pour le site, ajout en idée ou rédaction, topics surveillés et leurs insights.
 - **Rédaction** : idées de contenu, rédaction automatique depuis une expression, une ou plusieurs URL (réécriture d'une page concurrente), un mot-clé.
-- **Synchronisation CMS** : envoyer une page vers WordPress, réimporter une page, synchroniser tout le site.
+- **Éditeurs de contenu** : l'assistant sait dans quel éditeur est chaque page (éditeur classique, blocs Gutenberg, Elementor sur WordPress, Creative Elements sur PrestaShop) et écrit dans le bon format : il conserve les blocs d'une page Gutenberg, lit et modifie la structure et les widgets d'une page Elementor, connaît les widgets disponibles sur le site et leurs réglages, et peut régler l'éditeur par défaut du site ou d'un type de contenu.
+- **Synchronisation CMS** : envoyer une page vers le CMS du site, réimporter une page, synchroniser tout le site.
 - **Backlinks (MyBack.link)** : crédit, coût des options, ancres déjà utilisées, historique des commandes, commande de backlinks vers vos pages. L'achat via le MCP est désactivé par défaut : il s'active dans GPSEM, paramètres MyBack.link de l'entreprise, avec un plafond mensuel et un nombre maximal d'articles par commande.
 - **Compte** : ajout de site (dans la limite de l'abonnement), coordonnées de l'entreprise, paramètres du site, mentions légales.
 
@@ -62,6 +63,7 @@ Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM,
 - « Corrige la meta description des pages sans meta, envoie-les sur WordPress et note-le dans l'historique. »
 - « Quelles pages sont hors sujet d'après la cartographie sémantique ? »
 - « Rédige un article à partir de cette page concurrente : https://… »
+- « Sur la page Elementor /services, remplace le texte du deuxième bloc et ajoute un bouton vers /contact, sans toucher à la mise en page. »
 - « Les mentions légales de mon site sont-elles complètes ? Complète l'hébergeur et le directeur de la publication. »
 - « Crée un nouveau site pour https://exemple.fr si mon abonnement le permet. »
 - « Lance un crawl Screaming Frog, puis fais l'audit Opquast du site à partir du crawl, avec un commentaire pour chaque règle. »
@@ -79,6 +81,7 @@ Le catalogue complet est aussi exposé :
 
 - **Données par étapes** : les grosses réponses sont résumées ou paginées (sections d'audit : `data_index` puis `data=` / `bloc=` ; cartographie : `cluster=`, `q=`, `page_id=` ; listes : `limit`, `page`). Au-delà de `GPSEM_MAX_CHARS`, la réponse est tronquée avec une indication pour affiner la demande.
 - **Historique** : l'assistant lit `getHistoriqueCodes` et choisit le code le plus précis, ou le code générique de la cible (`100-09-001` site, `300-09-001` page, `310-09-001` catégorie, `320-09-001` archive). Les événements ajoutés par le MCP portent la source `mcp`.
+- **Éditeurs de contenu** : avant de modifier un contenu, l'assistant lit l'éditeur de la page (`getPage`, champ `editor`). Page en blocs : les délimiteurs de blocs sont conservés. Page Elementor : il modifie la structure (`elementor_data`) en gardant identifiants et réglages de style ; un contenu qui ne correspond plus à la structure est refusé plutôt que d'écraser la mise en page. Les widgets et leurs réglages viennent de `getContentEditors`.
 - **Actions à effet réel** (publication CMS, rédaction automatique, création de site, génération d'audit, modification du compte) : signalées aux clients MCP comme non en lecture seule ; l'assistant est invité à demander confirmation.
 
 ## Vérifier l'installation

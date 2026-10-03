@@ -59,6 +59,35 @@ watchTopic, refreshTopicInsights, unwatchTopic pour la veille récurrente.
 Justifier les recommandations : searchKnowledge cherche dans la documentation Google Search Central (en français) ; citer l'URL de la source.
 Les actions d'audit et les rapports de problèmes Screaming Frog portent déjà leurs references.
 
+Éditeurs de contenu — le format du contenu dépend de l'éditeur de la page. Lire getPage (content=1) AVANT toute modification de contenu : le champ
+editor vaut classique, gutenberg, elementor ou flexible, et content_type donne le type de contenu (page, post, slug d'un type).
+- classique : content est du HTML simple (titres à partir de h2, paragraphes, listes, liens, images) ; l'écrire tel quel avec updatePage.
+- gutenberg (éditeur de blocs WordPress) : content porte les blocs, délimités par des commentaires <!-- wp:nom {attributs} --> … <!-- /wp:nom -->.
+  Pour retoucher une page existante : garder chaque délimiteur et ses attributs JSON intacts, ne changer que le texte à l'intérieur du bloc,
+  sans changer sa balise ni ses classes ; ne jamais retirer un bloc inconnu (bloc d'une extension du site). Pour un nouveau contenu ou une
+  réécriture complète : envoyer du HTML simple, GPSEM le découpe en blocs à l'envoi au site (titres, paragraphes, listes, images, citations,
+  tableaux simples ; le reste en bloc « HTML personnalisé »).
+- elementor (Elementor sur WordPress, Creative Elements sur PrestaShop) : la mise en page est dans elementor_data (getPage content=1), un arbre
+  d'éléments { id, elType, widgetType, settings, elements } : section > column > widget, ou container > widget selon le site
+  (getContentEditors → elementor.structure). content n'en est qu'une version HTML pour l'analyse. Pour modifier : reprendre l'arbre reçu, ne
+  changer que les réglages de contenu des widgets visés (title d'un heading, editor d'un text-editor, text et link d'un button, image.url…),
+  laisser tels quels les id, les réglages de style et les widgets non compris, puis renvoyer l'arbre COMPLET dans updatePage elementor_data
+  (il remplace la structure). Ajouter un widget : seulement un widgetType listé par getContentEditors (addable), avec les réglages décrits par
+  getContentEditors widget=nom (nom, type, valeur par défaut, options, condition) ; l'id d'un nouvel élément est facultatif.
+  Envoyer content seul sur une page Elementor ne convient qu'aux petites retouches qui gardent le découpage du texte (lien ajouté, mot corrigé) :
+  GPSEM les reporte dans les widgets ; sinon la réponse est 409 elementor_structure_conflict et il faut passer par elementor_data.
+  updatePage editor=elementor convertit une page classique en structure Elementor simple et editor=classique fait l'inverse : dans les deux cas
+  la mise en page existante de la page est remplacée, demander confirmation.
+- flexible (flexible content ACF, WordPress) : les blocs se modifient dans GPSEM, pas avec ces outils ; ne pas écrire content sur ces pages.
+createPage : du HTML simple suffit, GPSEM le met au format de l'éditeur du type de contenu au moment de l'envoi (blocs, ou structure Elementor
+pour une page jamais publiée) ; pour une mise en page Elementor choisie, fournir elementor_data. Rien ne part au site sans push_to_cms=true ou
+pushPageToCms. Réglages : getContentEditors donne l'éditeur par défaut du site, celui de chaque type de contenu, les éditeurs disponibles et les
+widgets Elementor du site (refresh=1 réinterroge le site) ; updateContentEditors les change (default, content_types) — Elementor n'est proposé
+que s'il est détecté sur le site, erreur elementor_unavailable sinon.
+Si un autre MCP branché directement sur le site est disponible (WordPress / Gutenberg, Elementor), il peut servir à lire ou à préparer une mise
+en page, mais écrire par GPSEM pour que la modification soit tracée dans l'historique et suivie. Une page modifiée directement sur le site doit
+être réimportée (pullPageFromCms) avant d'être retravaillée ici : sinon le prochain envoi de GPSEM écrase cette modification.
+
 Tracer chaque modification dans l'historique (addSiteHistorique) : c'est ce qui permet à GPSEM de mesurer l'effet des changements sur le trafic.
 Lire d'abord getHistoriqueCodes et choisir le code le plus précis de la cible (100 site, 300 page, 310 catégorie, 320 archive) ; sinon le code générique
 (100-09-001, 300-09-001, 310-09-001, 320-09-001) avec une description claire et l'avant / après dans details. updatePage et createPage écrivent leur historique eux-mêmes.
@@ -95,7 +124,8 @@ choisir les pages cibles à partir des données GPSEM (pages performantes fragil
 (URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.
 
 Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), runLinkCorrection (modifie les contenus et les renvoie au CMS), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
-createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateLegalNotice.
+createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateContentEditors, updateLegalNotice,
+updatePage avec editor=elementor ou editor=classique (remplace la mise en page de la page).
 Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut pending à relire.`;
 
 /** Appel HTTP à l'API GPSEM ; renvoie { status, body } avec body décodé si JSON. */

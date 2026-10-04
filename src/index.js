@@ -51,6 +51,14 @@ indexées, crawlées non indexées, non crawlées depuis N jours, indexées à r
 Contenus et pruning, Mots-clés et Search Console (distribution, évolutions, questions, pages, cannibalisation), Maillage (orphelines, pages
 à mailler, clusters), Netlinking, Analytics et conversions, Planning éditorial — puis getGpsemTool(cle=…) pour les données (limit, page).
 
+Recherche de différences (archives du web) : pour savoir ce qui a changé sur une page ou un site, et quand — contenu refait, balise titre
+ou meta description réécrites, changement de CMS ou de thème, outil installé ou retiré, fichiers CSS / JS. startDifferenceSearch (urls,
+captures, mois ; du / au pour resserrer sur une période) lance la lecture des captures de la Wayback Machine en tâche de fond ; relire
+getDifferenceSearch toutes les 20 à 30 secondes jusqu'à etat = ok (résumé par adresse et dates des gros changements, url=… pour le détail) ;
+getDifferenceCapture donne le texte et les fichiers d'une capture ; listDifferenceSearches les recherches déjà faites (à consulter avant
+d'en relancer une). Utile devant une baisse de trafic datée, ou pour voir ce qu'un concurrent a modifié. Les dates sont des fourchettes
+entre deux captures de l'archive ; un outil « retiré » est une piste (il peut être chargé après consentement), pas une certitude.
+
 Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),
 puis addExternalContentIdea (idée seule) ou writeFromExternalContent (lance la rédaction : demander confirmation) ; listWatchedTopics,

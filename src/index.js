@@ -11,19 +11,26 @@
  *   GPSEM_API_URL    (facultatif)  défaut https://app.gpsem.io/api/v1/external
  *   GPSEM_SITE_ID    (facultatif)  site par défaut (ID encodé) quand l'outil attend siteId
  *   GPSEM_MAX_CHARS  (facultatif)  taille maximale d'une réponse renvoyée à l'assistant (défaut 60000)
+ *   GPSEM_EXPORT_DIR (facultatif)  dossier où les outils de lecture peuvent enregistrer leur réponse complète
+ *                                  (arguments enregistrer_sous et toutes_les_pages) ; absent : pas d'export en fichier
+ *   GPSEM_EXPORT_MAX_PAGES (facultatif) nombre maximal de pages enchaînées par toutes_les_pages (défaut 200)
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema, ListResourcesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 
 const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 const API_URL = (process.env.GPSEM_API_URL || 'https://app.gpsem.io/api/v1/external').replace(/\/+$/, '');
 const TOKEN = process.env.GPSEM_API_TOKEN || '';
 const SITE_PAR_DEFAUT = process.env.GPSEM_SITE_ID || '';
 const MAX_CHARS = Number(process.env.GPSEM_MAX_CHARS) || 60000;
+const EXPORT_DIR = process.env.GPSEM_EXPORT_DIR ? path.resolve(process.env.GPSEM_EXPORT_DIR) : '';
+const EXPORT_MAX_PAGES = Math.max(1, Math.floor(Number(process.env.GPSEM_EXPORT_MAX_PAGES)) || 200);
+const EXPORT_EXTENSIONS = ['.json', '.jsonl', '.csv'];
 const METHODES = ['get', 'post', 'put', 'patch', 'delete'];
 
 const INSTRUCTIONS = `GPSEM est une plateforme SEO. Ces outils lisent et modifient les données d'un compte GPSEM (entreprise, sites, pages, audits).
@@ -40,7 +47,12 @@ Lire beaucoup de données par étapes : les réponses volumineuses sont résumé
 - rapports : listAuditReports → getAuditReport (scores, synthèse, plan d'action) → getAuditReport avec section=… ;
 - cartographie sémantique : getSemanticMap (résumé) → cluster=…, q=…, page_id=…, sort/order, limit/page ;
 - listes (pages, mots-clés, contenus, historique) : limit et page, meta.total donne le volume.
-
+${EXPORT_DIR ? `
+Export en fichier : pour un export ou toute liste de plus de quelques centaines de lignes, utiliser enregistrer_sous (+ toutes_les_pages) plutôt que
+de lire les tranches une à une ; travailler ensuite sur le fichier. enregistrer_sous = nom de fichier relatif en .json, .jsonl ou .csv, écrit dans
+${EXPORT_DIR} ; la réponse complète va dans le fichier et l'outil ne renvoie qu'un accusé (chemin, taille, nombre de lignes, colonnes, aperçu).
+Disponible sur les outils de lecture ; mettre limit au maximum admis par l'outil pour réduire le nombre d'appels.
+` : ''}
 Données de trafic en direct, avec les connexions déjà faites dans GPSEM (rien à reconnecter) : querySearchConsole (dimensions query, page, date,
 device, country ; search_type=discover pour Discover, qui n'accepte que page, date et country), queryAnalytics (rapport GA4 libre : dimensions et
 métriques GA4), queryBing, queryMerchant, queryYoutube. Une erreur source_not_connected signifie que la source n'est pas connectée pour ce site :
@@ -223,6 +235,19 @@ function outilsDepuisSpec(spec) {
         }
       }
       const lecture = methode === 'get';
+      // Export en fichier : deux arguments de plus sur les outils de lecture, seulement si GPSEM_EXPORT_DIR est défini
+      if (lecture && EXPORT_DIR && !proprietes.enregistrer_sous && !proprietes.toutes_les_pages) {
+        proprietes.enregistrer_sous = {
+          type: 'string',
+          description: 'Enregistre la réponse COMPLÈTE (sans troncature) dans ce fichier au lieu de la renvoyer : nom relatif, ex. « pages-site.json », '
+            + `extension .json, .jsonl ou .csv, écrit dans ${EXPORT_DIR}. L'outil ne renvoie alors qu'un accusé (chemin, taille, lignes, colonnes, aperçu).`,
+        };
+        proprietes.toutes_les_pages = {
+          type: 'boolean',
+          default: false,
+          description: `Avec enregistrer_sous : enchaîne toutes les pages de la réponse (limit / page ou offset) et les réunit dans le même fichier (${EXPORT_MAX_PAGES} pages au plus).`,
+        };
+      }
       outils.push({
         definition: {
           name: op.operationId,
@@ -272,6 +297,182 @@ async function executer(outil, args = {}) {
     if (args.source === undefined && outil.chemin.endsWith('/historique')) body.source = 'mcp';
   }
   return appeler(outil.methode, chemin, { query, body });
+}
+
+/** Chemin du fichier d'export, résolu dans EXPORT_DIR ; refuse un nom qui en sort ou une extension non admise. */
+function cheminExport(nom) {
+  const refus = (raison) => new Error(`Chemin refusé (« ${nom} ») : ${raison}.`);
+  if (typeof nom !== 'string' || !nom.trim()) throw new Error('enregistrer_sous attend un nom de fichier relatif, ex. « pages-site.json ».');
+  const propre = nom.trim();
+  if (propre.includes('\0')) throw refus('caractère interdit');
+  if (path.isAbsolute(propre) || path.win32.isAbsolute(propre) || /^[\\/]/.test(propre) || /^[a-zA-Z]:/.test(propre)) {
+    throw refus('chemin absolu, donner un nom relatif au dossier d\'export');
+  }
+  if (propre.split(/[\\/]+/).includes('..')) throw refus('« .. » interdit');
+  const extension = path.extname(propre).toLowerCase();
+  if (!EXPORT_EXTENSIONS.includes(extension)) throw refus(`extensions admises : ${EXPORT_EXTENSIONS.join(', ')}`);
+  const cible = path.resolve(EXPORT_DIR, propre);
+  if (!cible.startsWith(EXPORT_DIR + path.sep)) throw refus('hors du dossier d\'export');
+  mkdirSync(path.dirname(cible), { recursive: true });
+  // Un lien symbolique placé dans le dossier d'export ne doit pas permettre d'en sortir
+  const racine = realpathSync(EXPORT_DIR);
+  const dossier = realpathSync(path.dirname(cible));
+  if (dossier !== racine && !dossier.startsWith(racine + path.sep)) throw refus('hors du dossier d\'export');
+  return { cible, extension };
+}
+
+/** Lignes d'une réponse : data si c'est une liste, sinon la seule liste portée par data ; null si la réponse n'est pas tabulaire. */
+function lignesDe(body) {
+  if (!body || typeof body !== 'object') return null;
+  if (Array.isArray(body)) return { lignes: body, cle: 'data' };
+  const data = body.data;
+  if (Array.isArray(data)) return { lignes: data, cle: 'data' };
+  if (data && typeof data === 'object') {
+    const listes = Object.entries(data).filter(([, v]) => Array.isArray(v));
+    const choisie = listes.length === 1 ? listes[0] : listes.find(([k]) => ['rows', 'items', 'lignes', 'results', 'data'].includes(k));
+    if (choisie) return { lignes: choisie[1], cle: `data.${choisie[0]}` };
+  }
+  return null;
+}
+
+/** Colonnes d'une liste : union des clés de premier niveau, dans l'ordre de première apparition. */
+function colonnesDe(lignes) {
+  const colonnes = new Set();
+  for (const l of lignes) {
+    if (l && typeof l === 'object' && !Array.isArray(l)) for (const k of Object.keys(l)) colonnes.add(k);
+  }
+  return [...colonnes];
+}
+
+/** CSV : séparateur « ; », valeurs imbriquées en JSON, UTF-8 avec BOM. */
+function versCsv(lignes, colonnes) {
+  const cellule = (v) => {
+    if (v === undefined || v === null) return '';
+    const t = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    return /[";\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const sorties = [(colonnes.length ? colonnes : ['valeur']).map(cellule).join(';')];
+  for (const l of lignes) {
+    const objet = l && typeof l === 'object' && !Array.isArray(l);
+    sorties.push(colonnes.length && objet ? colonnes.map((c) => cellule(l[c])).join(';') : cellule(l));
+  }
+  return `﻿${sorties.join('\r\n')}\r\n`;
+}
+
+/** Ligne raccourcie pour l'aperçu de l'accusé : les valeurs longues ou imbriquées sont coupées. */
+function apercu(ligne) {
+  const court = (v) => {
+    const t = typeof v === 'string' ? v : v && typeof v === 'object' ? JSON.stringify(v) : null;
+    return t !== null && t.length > 160 ? `${t.slice(0, 160)}…` : v;
+  };
+  if (ligne && typeof ligne === 'object' && !Array.isArray(ligne)) {
+    return Object.fromEntries(Object.entries(ligne).slice(0, 40).map(([k, v]) => [k, court(v)]));
+  }
+  return court(ligne);
+}
+
+/**
+ * Exécute un outil de lecture et enregistre sa réponse complète dans un fichier de EXPORT_DIR ; renvoie { texte, erreur },
+ * texte étant l'accusé destiné à l'assistant. Avec toutesLesPages, enchaîne les pages (page ou offset) jusqu'au bout.
+ */
+async function exporter(outil, args, nom, toutesLesPages) {
+  if (!EXPORT_DIR) {
+    throw new Error('export en fichier non activé : définir la variable d\'environnement GPSEM_EXPORT_DIR (dossier de destination) dans la configuration du serveur MCP.');
+  }
+  if (outil.methode !== 'get') throw new Error('enregistrer_sous n\'est disponible que sur les outils de lecture.');
+  const { cible, extension } = cheminExport(nom);
+  const noms = outil.parametres.map((p) => p.nom);
+  const mode = noms.includes('page') ? 'page' : noms.includes('offset') ? 'offset' : null;
+
+  const premiere = await executer(outil, args);
+  if (premiere.status >= 400) return { texte: texteReponse(premiere), erreur: true };
+  const tabulaire = lignesDe(premiere.body);
+  if (!tabulaire && extension !== '.json') {
+    throw new Error(`réponse non tabulaire (pas de liste dans data) : export ${extension} impossible, utiliser un nom en .json.`);
+  }
+
+  const notes = [];
+  let lignes = tabulaire ? tabulaire.lignes.slice() : null;
+  const meta = !Array.isArray(premiere.body) && premiere.body?.meta && typeof premiere.body.meta === 'object' ? premiere.body.meta : null;
+  const total = meta && meta.total !== null && meta.total !== '' && Number.isFinite(Number(meta.total)) ? Number(meta.total) : null;
+  let pagesLues = 1;
+  const fusion = toutesLesPages && !!tabulaire && !!mode;
+  let interrompu = false;
+  if (fusion) {
+    const parPage = Number(args.limit) || Number(meta?.limit) || Number(meta?.per_page) || null;
+    let page = Number(args.page) || Number(meta?.page) || 1;
+    const debut = mode === 'offset' ? Number(args.offset) || 0 : (page - 1) * (parPage || 0);
+    let recues = lignes.length;
+    let precedente = JSON.stringify(tabulaire.lignes);
+    while (recues > 0) {
+      if (total !== null ? debut + lignes.length >= total : parPage !== null && recues < parPage) break;
+      const suivante = mode === 'page' ? `page=${page + 1}` : `offset=${debut + lignes.length}`;
+      if (pagesLues >= EXPORT_MAX_PAGES) {
+        interrompu = true;
+        notes.push(`Arrêt au garde-fou de ${EXPORT_MAX_PAGES} pages (GPSEM_EXPORT_MAX_PAGES) : le fichier est incomplet. Reprendre à ${suivante} dans un autre fichier, ou augmenter limit.`);
+        break;
+      }
+      let r;
+      try {
+        r = await executer(outil, mode === 'page' ? { ...args, page: page + 1 } : { ...args, offset: debut + lignes.length });
+      } catch (e) {
+        r = { status: 0, body: e.message };
+      }
+      const t = r.status >= 200 && r.status < 400 ? lignesDe(r.body) : null;
+      if (!t) {
+        const motif = r.status === 0 ? `appel impossible (${r.body})`
+          : r.status >= 400 ? `erreur HTTP ${r.status} ${(typeof r.body === 'string' ? r.body : JSON.stringify(r.body)).slice(0, 300)}` : 'réponse sans liste';
+        interrompu = true;
+        notes.push(`Pagination interrompue à ${suivante} : ${motif}. Les ${pagesLues} page(s) déjà lues sont dans le fichier ; reprendre à ${suivante} dans un autre fichier.`);
+        break;
+      }
+      const empreinte = JSON.stringify(t.lignes);
+      if (t.lignes.length && empreinte === precedente) {
+        notes.push('Pagination arrêtée : la page suivante est identique à la précédente (cet outil ne pagine pas avec ces arguments).');
+        break;
+      }
+      precedente = empreinte;
+      recues = t.lignes.length;
+      if (recues) {
+        lignes = lignes.concat(t.lignes);
+        pagesLues += 1;
+        page += 1;
+      }
+    }
+    if (!interrompu && !notes.length && total !== null && debut + lignes.length < total) {
+      notes.push(`${lignes.length} lignes reçues pour meta.total = ${total} : l'API n'a pas renvoyé la suite.`);
+    }
+  } else if (toutesLesPages) {
+    notes.push(tabulaire ? 'toutes_les_pages sans effet : cet outil n\'a ni argument page ni argument offset, une seule réponse a été enregistrée.'
+      : 'toutes_les_pages sans effet : la réponse n\'est pas une liste paginée.');
+  }
+
+  const colonnes = lignes ? colonnesDe(lignes) : [];
+  let contenu;
+  if (extension === '.csv') contenu = versCsv(lignes, colonnes);
+  else if (extension === '.jsonl') contenu = lignes.map((l) => `${JSON.stringify(l)}\n`).join('');
+  else if (fusion) contenu = JSON.stringify({ meta: { ...meta, pages_lues: pagesLues, lignes: lignes.length }, data: lignes }, null, 1);
+  else contenu = typeof premiere.body === 'string' ? premiere.body : JSON.stringify(premiere.body, null, 1);
+  // Le jeton ne doit jamais se retrouver dans un fichier, même si une réponse le renvoyait
+  if (TOKEN) contenu = contenu.split(TOKEN).join('[jeton masqué]');
+  writeFileSync(cible, contenu, 'utf8');
+
+  const accuse = {
+    fichier: cible,
+    format: extension.slice(1),
+    taille_octets: Buffer.byteLength(contenu, 'utf8'),
+    lignes: lignes ? lignes.length : null,
+    meta_total: total,
+    pages_lues: pagesLues,
+    ...(tabulaire && tabulaire.cle !== 'data' ? { liste_lue_dans: tabulaire.cle } : {}),
+    colonnes,
+    apercu: lignes ? lignes.slice(0, 3).map(apercu) : apercu(premiere.body),
+    ...(notes.length ? { attention: notes.join(' ') } : {}),
+  };
+  let texte = `${interrompu ? 'Export INCOMPLET' : 'Réponse enregistrée'} dans le fichier (contenu non renvoyé ici) :\n${JSON.stringify(accuse, null, 1)}`;
+  if (TOKEN) texte = texte.split(TOKEN).join('[jeton masqué]');
+  if (texte.length > MAX_CHARS) texte = `${texte.slice(0, MAX_CHARS)}\n[Accusé tronqué.]`;
+  return { texte, erreur: interrompu };
 }
 
 /** Mise en forme d'une réponse pour l'assistant, tronquée au-delà de MAX_CHARS. */
@@ -367,7 +568,14 @@ async function main() {
       return { isError: true, content: [{ type: 'text', text: `Outil inconnu : ${requete.params.name}` }] };
     }
     try {
-      const r = await executer(outil, requete.params.arguments || {});
+      const args = requete.params.arguments || {};
+      // Export en fichier, sauf si l'API a elle-même un paramètre de ce nom
+      if (args.enregistrer_sous !== undefined && args.enregistrer_sous !== '' && !outil.parametres.some((p) => p.nom === 'enregistrer_sous')
+        && !outil.corps?.champs?.includes('enregistrer_sous')) {
+        const e = await exporter(outil, args, args.enregistrer_sous, args.toutes_les_pages === true || args.toutes_les_pages === 'true');
+        return { isError: e.erreur, content: [{ type: 'text', text: e.texte }] };
+      }
+      const r = await executer(outil, args);
       return { isError: r.status >= 400, content: [{ type: 'text', text: texteReponse(r) }] };
     } catch (e) {
       return { isError: true, content: [{ type: 'text', text: `Échec de l'appel à GPSEM : ${e.message}` }] };

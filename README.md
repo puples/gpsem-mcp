@@ -56,6 +56,8 @@ Dans le fichier de configuration MCP du client (`claude_desktop_config.json`, `.
 | `GPSEM_SITE_ID` | facultatif | Site par défaut (ID encodé) : plus besoin de préciser `siteId` |
 | `GPSEM_API_URL` | facultatif | Défaut `https://app.gpsem.io/api/v1/external` |
 | `GPSEM_MAX_CHARS` | facultatif | Taille maximale d'une réponse transmise à l'assistant (défaut 60 000 caractères) |
+| `GPSEM_EXPORT_DIR` | facultatif | Dossier où l'assistant peut enregistrer les réponses complètes en fichier (voir *Export en fichier*). Absent : pas d'export en fichier |
+| `GPSEM_EXPORT_MAX_PAGES` | facultatif | Nombre maximal de pages enchaînées par `toutes_les_pages` (défaut 200) |
 
 Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM, sans intermédiaire.
 
@@ -79,6 +81,29 @@ Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM,
 Le catalogue complet est aussi exposé :
 - en outils : `listReports` (général) et `listReportsForSite` ;
 - en ressources MCP : `gpsem://rapports` et `gpsem://sites/{siteId}/rapports`.
+
+## Export en fichier
+
+Pour exporter une grosse liste (pages, mots-clés, tableau d'un outil GPSEM…), l'assistant n'a pas à la lire tranche par tranche dans la conversation : avec `GPSEM_EXPORT_DIR`, le serveur écrit lui-même la réponse dans un fichier de ce dossier.
+
+```json
+"env": { "GPSEM_API_TOKEN": "gpsem_votre_token", "GPSEM_EXPORT_DIR": "C:\\Users\\moi\\exports-gpsem" }
+```
+
+Chaque outil de lecture reçoit alors deux arguments de plus :
+
+| Argument | | Rôle |
+|---|---|---|
+| `enregistrer_sous` | texte | Nom de fichier relatif au dossier d'export, ex. `pages-site.json` ou `2026-10/mots-cles.csv` (les sous-dossiers sont créés). Extensions admises : `.json`, `.jsonl`, `.csv`. Un chemin absolu ou contenant `..` est refusé |
+| `toutes_les_pages` | vrai / faux (défaut faux) | Si la réponse est paginée (`limit` / `page`, ou `offset`), enchaîne les pages jusqu'au bout et réunit tout dans le même fichier, dans la limite de `GPSEM_EXPORT_MAX_PAGES` |
+
+La réponse **complète** est écrite dans le fichier, sans la troncature de `GPSEM_MAX_CHARS`. L'assistant ne reçoit qu'un accusé : chemin du fichier, taille, nombre de lignes, `meta.total`, noms des colonnes et les 3 premières lignes en aperçu.
+
+- `.json` : la réponse telle que reçue ; avec `toutes_les_pages`, `{ meta, data: [...] }` avec toutes les lignes.
+- `.jsonl` : une ligne par élément de la liste.
+- `.csv` : une ligne par élément, colonnes = toutes les clés de premier niveau, valeurs imbriquées en JSON, séparateur `;`, UTF-8 avec BOM (s'ouvre directement dans Excel).
+
+`.jsonl` et `.csv` demandent une réponse en liste ; une réponse qui n'en est pas une s'enregistre en `.json`. Si une erreur survient en cours de pagination, les pages déjà lues restent dans le fichier et l'accusé dit où reprendre. Un fichier du même nom est remplacé. Les outils qui modifient des données n'ont pas ces arguments, et le token n'est jamais écrit dans un fichier.
 
 ## Bonnes pratiques intégrées
 

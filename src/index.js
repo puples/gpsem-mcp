@@ -109,6 +109,12 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    dernieres_indexations. Après une modification, l'historique sert à attendre que Google repasse : comparer la date du changement
    (300-…) avec le premier crawl Google qui suit, et ne juger l'effet (querySearchConsole page=… avant / après) qu'à partir de ce passage
    et après 2 à 4 semaines. Tant que Google n'est pas repassé, dire qu'il est trop tôt plutôt que de conclure.
+   Indexation : getIndexationStatus (bilan des tests, file, erreurs, quota) ; runIndexTests page_ids / urls pour vérifier tout de suite
+   qu'une page modifiée ou nouvelle est indexée (résultat dans getPage : is_indexed, test_index, après traitement de la file) ;
+   requestIndexing pour signaler à Google des pages modifiées ou non indexées (lot = nonindexees), puis listIndexingRequests et un
+   nouveau test quelques jours plus tard. Tester les pages utiles, pas tout le site à répétition (quota Search Console de 2 000
+   inspections par jour et par site) ; une page non indexée qui reste non indexée malgré une demande est un problème de qualité ou
+   de maillage, pas d'envoi : le dire et chercher la cause (contenu, liens reçus, doublon, canonique).
 
 Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),
@@ -182,7 +188,7 @@ Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autor
 choisir les pages cibles à partir des données GPSEM (pages performantes fragilisées, mots-clés en page 2, backlinks perdus), puis présenter la commande
 (URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.
 
-Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), runLinkCorrection (modifie les contenus et les renvoie au CMS), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
+Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), requestIndexing (API Indexing de Google, quota), runIndexTests sur beaucoup de pages (quota Search Console), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), runLinkCorrection (modifie les contenus et les renvoie au CMS), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
 createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateContentEditors, updateLegalNotice,
 updatePage avec editor=elementor ou editor=classique (remplace la mise en page de la page).
 Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut pending à relire.`;

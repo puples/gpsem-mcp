@@ -4,6 +4,7 @@ Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) 
 
 - **Pages, catégories, archives (CPT)** : lister, lire la fiche complète d'une page (SEO, indexation, scores, historique, problèmes de crawl), créer, modifier.
 - **Historique des modifications** : lire et ajouter des événements (site, page, catégorie, archive), dont chaque lien interne avec sa page source et sa date, pour mesurer l’effet de chaque changement sur le crawl, l’indexation et le trafic.
+- **Indexation** : état des tests d'indexation du site (bilan, file d'attente, erreurs, lancements), test immédiat de pages précises ou par lot, demandes d'indexation à Google (API Indexing, quota de 200 par jour et par clé) et leur historique.
 - **Search Console, GA4, Bing Webmaster, Merchant Center, YouTube** : interrogés en direct avec les connexions déjà faites dans GPSEM, sans rien reconnecter. Search Console et GA4 acceptent des requêtes libres (dimensions, métriques, filtres, périodes).
 - **Audit SEO** : sections collectées à la demande ; 14 types de rapports préréglés (express, résultats, visibilité, trafic, concurrence, indexation, contenus, maillage, performance, historique, cadrage, technique, complet, Knowledge Graph), en aperçu, PDF et PowerPoint ; scores, plan d’action priorisé avec gain estimé, suivi des actions.
 - **Rapports mis en page** : rapports prêts à l'emploi (mensuel, direction, hebdomadaire, visibilité Google, audience, indexation, technique, contenus, e-commerce, IA, bilan annuel) calculés pour la période voulue, avec comparaison ; chiffres lisibles par l'assistant, composition d'un rapport sur mesure à partir d'une centaine de modules, et lien public (aperçu + PDF, sans connexion, période figée, révocable) à insérer dans un e-mail.
@@ -75,6 +76,7 @@ Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM,
 - « Mon trafic baisse depuis mi-décembre : est-ce une mise à jour Google ou un changement du site ? »
 - « Le site a-t-il été piraté ? Regarde ce qui a changé sur l'accueil et les pages qui ont perdu du trafic depuis un an. »
 - « J'ai réécrit le title de /services il y a 10 jours : Google est-il repassé, et y a-t-il déjà un effet ? »
+- « Teste l'indexation des 5 articles publiés cette semaine et demande l'indexation de ceux qui ne le sont pas (je valide avant). »
 - « Quelles pages mériteraient des backlinks ce mois-ci ? Prépare une commande MyBack.link de 3 articles, je valide avant. »
 
 ## Catalogue des rapports

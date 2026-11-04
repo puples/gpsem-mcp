@@ -68,8 +68,47 @@ ou meta description réécrites, changement de CMS ou de thème, outil installé
 captures, mois ; du / au pour resserrer sur une période) lance la lecture des captures de la Wayback Machine en tâche de fond ; relire
 getDifferenceSearch toutes les 20 à 30 secondes jusqu'à etat = ok (résumé par adresse et dates des gros changements, url=… pour le détail) ;
 getDifferenceCapture donne le texte et les fichiers d'une capture ; listDifferenceSearches les recherches déjà faites (à consulter avant
-d'en relancer une). Utile devant une baisse de trafic datée, ou pour voir ce qu'un concurrent a modifié. Les dates sont des fourchettes
-entre deux captures de l'archive ; un outil « retiré » est une piste (il peut être chargé après consentement), pas une certitude.
+d'en relancer une). Utile devant une baisse de trafic datée, après un piratage, ou pour voir ce qu'un concurrent a modifié. Les dates sont
+des fourchettes entre deux captures de l'archive ; un outil « retiré » est une piste (il peut être chargé après consentement), pas une certitude.
+Chaque date de gros changement est placée par rapport aux mises à jour Google (champ google : pendant, entre — precedente / suivante avec
+l'écart en jours —, ou a_affiner : relancer avec du / au sur la fourchette). listGoogleUpdates (from, to, type) donne les mises à jour seules.
+
+CAS D'USAGE — enchaîner les outils plutôt que répondre sur un seul chiffre. Toujours dater (quand ça a commencé, sur quelles pages), puis
+chercher ce qui s'est passé à ce moment : sur le site (historique, archives), chez Google (mises à jour), dans les données (Search Console).
+
+1. Audit suite à un problème (baisse de trafic, désindexation, piratage) :
+   a. Mesurer et dater : querySearchConsole par date (clics, impressions, position) sur 16 mois, puis par page et par requête sur la période
+      avant / après la baisse ; comparer avec la même période l'an passé (saisonnalité). getNavrankAnalysis (tendance, anomalies,
+      impact_updates) si le site a des relevés NavRank. Distinguer une baisse générale (tout le site) d'une baisse de quelques pages ou
+      d'un type de page (catégories, fiches produit, articles) : ce n'est pas la même cause.
+   b. Google : listGoogleUpdates autour de la date. Si la baisse commence pendant un déploiement : getNavrankAnalysis update=id (4 semaines
+      avant / après). Core update = qualité perçue de l'ensemble du site ; spam / link spam = pratiques (liens, contenus, pages piratées) ;
+      helpful content / reviews = contenus. Une coïncidence de dates est un indice, jamais une preuve : le dire.
+   c. Le site : getSiteHistorique (from / to autour de la date) pour les changements tracés ; puis startDifferenceSearch sur 3 à 10 adresses
+      représentatives (accueil, pages qui ont le plus perdu, une page de chaque modèle) sur une période qui encadre la baisse. Lire les
+      dates des gros changements et leur champ google : changement AVANT la mise à jour = il a pu être jugé par elle ; changement APRÈS =
+      souvent une réaction à la baisse (ou sans lien) ; aucun changement = chercher ailleurs (concurrence, liens, technique, Google seul).
+   d. Si changement : inspecter ce qui a bougé — getDifferenceSearch url=… (passages ajoutés / retirés, fichiers CSS et JS), getDifferenceCapture
+      (texte, titres, données structurées), outils installés / retirés (changement de CMS, de thème, d'extension, scripts tiers inconnus).
+      Piratage : scripts ou domaines tiers apparus, texte ou liens sans rapport avec le sujet du site, title / meta réécrites (spam japonais,
+      pharmacie, casino), redirections ; vérifier les pages qui en sont touchées (getPage, desindexations_recentes, getScreamingFrogIssue).
+   e. Technique : dernier crawl Screaming Frog (getScreamingFrogDashboard), indexation (getGpsemTool pages_non_indexees,
+      desindexations_recentes, activite_google_par_jour). Conclure en hiérarchisant les causes probables, avec les preuves, et un plan d'action.
+
+2. Audit pour améliorer le site : listReportsForSite puis listAuditSections / getAuditSection, listAuditActions ; createAuditReport pour un
+   rapport complet à jour (après un crawl récent). Compléter par listGpsemTools (indexation, pruning, maillage, cannibalisation) et la
+   cartographie sémantique. Justifier avec searchKnowledge.
+
+3. Recherche d'amélioration des positions : mots-clés en page 2 (positions 8 à 20 avec impressions : querySearchConsole query + page),
+   cannibalisation, pages à mailler et orphelines (listLinkSuggestions, listOrphanPages), getNavrankAnalysis (pépites cachées, clics
+   déçus = title / meta à revoir), concurrents (outils Semrush, startDifferenceSearch sur la page concurrente qui a gagné : qu'a-t-elle
+   changé, et quand). Proposer peu de pages, les plus rentables, avec la modification précise.
+
+4. Suivi et contrôle d'un site ou d'une URL : getPage (indexation, scores des 4 dernières semaines, 20 derniers événements) ; getSiteHistorique
+   page_id=… pour tout l'historique, dont les passages de Google (code 700-01-003, à demander explicitement) ; derniers_crawls,
+   dernieres_indexations. Après une modification, l'historique sert à attendre que Google repasse : comparer la date du changement
+   (300-…) avec le premier crawl Google qui suit, et ne juger l'effet (querySearchConsole page=… avant / après) qu'à partir de ce passage
+   et après 2 à 4 semaines. Tant que Google n'est pas repassé, dire qu'il est trop tôt plutôt que de conclure.
 
 Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),

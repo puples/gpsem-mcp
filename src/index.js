@@ -123,7 +123,7 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    d'une personne n'ont souvent rien à voir) ; inscription avec un vrai contenu (description unique, informations exactes et identiques
    partout : nom, adresse, téléphone) ; puis setLinkSpotStatus : en_cours dès le début, soumis si le site valide à la main, obtenu avec
    url_profil (la page où se trouve le lien) et planification_id. CAPTCHA, code reçu par SMS ou e-mail illisible, paiement demandé :
-   s'arrêter, laisser en_cours avec une note, ou ecarte si le site est devenu payant (et suggestLinkSpot pour un bon spot trouvé en route).
+   s'arrêter, laisser en_cours avec une note, ou ecarte si le site est devenu payant.
    Respecter le rythme par semaine. Black hat : jamais sans l'option du site, et jamais l'activer (updateLinkSpotSettings) sans l'accord
    explicite de l'utilisateur. Un spot « a_verifier » ou « joignable » n'est pas encore confirmé gratuit : vérifier avant de remplir.
 

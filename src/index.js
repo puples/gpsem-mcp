@@ -137,6 +137,17 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    Google), resolveListingChange (accepter / retablir / ignorer : demander à l'utilisateur pour un changement de gravité haute ou
    critique). Effet d'une modification : getListingHistory pour la dater, puis getLocationPerformance (periode, comparer=annee,
    serie=appels…) et getLocationSearchKeywords ; attendre 2 à 4 semaines avant de juger. Les expressions « moins de N » ne s'additionnent pas.
+   Audit : runLocalAudit (ou getLocalAudit pour le dernier) ; la note ne porte que sur les contrôles évalués — un contrôle non_evalue
+   n'est JAMAIS un échec, le dire « non vérifié ». Présenter le plan (par cause, risques d'abord) avec l'outil qui corrige ; réseau :
+   getLocalNetworkAudit (actions de marque = une correction pour tous). listLocalAuditChecks donne les règles et seuils.
+   Avis : syncLocalReviews puis listReviews (repondu=non, notes=1,2 d'abord) ; draftReviewReply (IA de l'entreprise, ne rien inventer)
+   puis replyToReview : la réponse attend TOUJOURS une validation humaine (le dire). Jamais de promesse, de geste commercial, de lien ni
+   de donnée personnelle. getReviewStats : thèmes à traiter (avec les avis cités), rythme, simulateur (cible=4.5) ; getReviewRequestKit
+   pour les liens de demande : à proposer à TOUS les clients, sans contrepartie ni tri.
+   Positions (géogrille Google Maps) : estimateLocalGrid TOUJOURS d'abord (points, coût sur le compte DataForSEO de l'entreprise,
+   plafond restant) ; annoncer le coût et ne lancer runLocalGridScan qu'avec l'accord de l'utilisateur (confirmer=true au-delà du
+   seuil). En mode demo les relevés sont simulés (donnees_fictives=true) : le dire. getLocalGridScan (points=1 pour le détail) :
+   part top 3, rang moyen, part de voix, concurrents ; ne comparer que deux relevés de la même série (listLocalGridSeries).
 
 Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),

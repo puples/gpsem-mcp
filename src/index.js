@@ -127,6 +127,17 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    Respecter le rythme par semaine. Black hat : jamais sans l'option du site, et jamais l'activer (updateLinkSpotSettings) sans l'accord
    explicite de l'utilisateur. Un spot « a_verifier » ou « joignable » n'est pas encore confirmé gratuit : vérifier avant de remplir.
 
+6. SEO local (préversion, entreprises autorisées seulement ; 403 ailleurs) : getLocalModuleStatus d'abord — en mode demo, toutes les
+   fiches, statistiques et expressions sont FICTIVES : le dire, ne jamais les présenter comme des données réelles. getLocalDashboard
+   (vues, actions, changements à traiter, modifications en attente), listLocations puis getLocation (référence GPSEM, fiche publiée,
+   écarts ; fraiche=1 pour relire). Modifier une fiche : previewListingUpdate (garde-fous : un blocage se corrige, un avertissement se
+   montre à l'utilisateur), puis proposeListingUpdate avec avertissements_lus=true seulement si l'utilisateur a lu les avertissements.
+   Une proposition n'est JAMAIS envoyée par l'agent : une personne la valide et l'applique dans GPSEM ; le dire. Ne jamais ajouter de
+   ville ni de mot-clé au nom (sanctionné par Google). Veille : listListingChanges (changements faits hors de GPSEM ou proposés par
+   Google), resolveListingChange (accepter / retablir / ignorer : demander à l'utilisateur pour un changement de gravité haute ou
+   critique). Effet d'une modification : getListingHistory pour la dater, puis getLocationPerformance (periode, comparer=annee,
+   serie=appels…) et getLocationSearchKeywords ; attendre 2 à 4 semaines avant de juger. Les expressions « moins de N » ne s'additionnent pas.
+
 Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),
 puis addExternalContentIdea (idée seule) ou writeFromExternalContent (lance la rédaction : demander confirmation) ; listWatchedTopics,

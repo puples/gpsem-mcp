@@ -18,6 +18,7 @@ Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) 
 - **Rédaction** : idées de contenu, rédaction automatique depuis une expression, une ou plusieurs URL (réécriture d'une page concurrente), un mot-clé.
 - **Éditeurs de contenu** : l'assistant sait dans quel éditeur est chaque page (éditeur classique, blocs Gutenberg, Elementor sur WordPress, Creative Elements sur PrestaShop) et écrit dans le bon format : il conserve les blocs d'une page Gutenberg, lit et modifie la structure et les widgets d'une page Elementor, connaît les widgets disponibles sur le site et leurs réglages, et peut régler l'éditeur par défaut du site ou d'un type de contenu.
 - **Synchronisation CMS** : envoyer une page vers le CMS du site, réimporter une page, synchroniser tout le site.
+- **Spots de liens (ninjalinking)** : annuaire de sites où obtenir un lien soi-même, sans achat (annuaires, fiches d'entreprise, profils, partage…), filtré par type, cible (site, entreprise ou personne), portée locale / nationale / internationale, pays, langue, gratuité, lien suivi et risque white / grey / black (black hat bloqué tant que le site ne l'a pas activé). Procédure par cible, suivi « à faire / en cours / obtenu », backlink inscrit dans GPSEM, liens planifiés à réaliser.
 - **Backlinks (MyBack.link)** : crédit, coût des options, ancres déjà utilisées, historique des commandes, commande de backlinks vers vos pages. L'achat via le MCP est désactivé par défaut : il s'active dans GPSEM, paramètres MyBack.link de l'entreprise, avec un plafond mensuel et un nombre maximal d'articles par commande.
 - **Compte** : ajout de site (dans la limite de l'abonnement), coordonnées de l'entreprise, paramètres du site, mentions légales.
 
@@ -78,6 +79,8 @@ Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM,
 - « J'ai réécrit le title de /services il y a 10 jours : Google est-il repassé, et y a-t-il déjà un effet ? »
 - « Teste l'indexation des 5 articles publiés cette semaine et demande l'indexation de ceux qui ne le sont pas (je valide avant). »
 - « Quelles pages mériteraient des backlinks ce mois-ci ? Prépare une commande MyBack.link de 3 articles, je valide avant. »
+- « Trouve 5 annuaires locaux gratuits en Suisse pour l'entreprise, inscris-la et coche ce qui est fait. »
+- « Quels liens planifiés sont en retard ? Propose un spot pour chacun avec sa procédure. »
 
 ## Catalogue des rapports
 

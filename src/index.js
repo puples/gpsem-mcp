@@ -116,6 +116,17 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    inspections par jour et par site) ; une page non indexée qui reste non indexée malgré une demande est un problème de qualité ou
    de maillage, pas d'envoi : le dire et chercher la cause (contenu, liens reçus, doublon, canonique).
 
+5. Liens obtenus soi-même (ninjalinking, JAMAIS d'achat) : getLinkSpotSettings (cibles du site : site, entreprise, personne ; pays ;
+   langues ; inscriptions par semaine au plus ; black hat autorisé ou non) ; listLinkPlansToDo (liens planifiés à réaliser) ;
+   searchLinkSpots (planification=id pour un lien planifié, sinon type / cible / portée locale, nationale ou internationale / pays /
+   gratuit / dofollow) ; getLinkSpot pour la procédure de LA cible choisie (sur un même site, l'inscription d'une entreprise et celle
+   d'une personne n'ont souvent rien à voir) ; inscription avec un vrai contenu (description unique, informations exactes et identiques
+   partout : nom, adresse, téléphone) ; puis setLinkSpotStatus : en_cours dès le début, soumis si le site valide à la main, obtenu avec
+   url_profil (la page où se trouve le lien) et planification_id. CAPTCHA, code reçu par SMS ou e-mail illisible, paiement demandé :
+   s'arrêter, laisser en_cours avec une note, ou ecarte si le site est devenu payant (et suggestLinkSpot pour un bon spot trouvé en route).
+   Respecter le rythme par semaine. Black hat : jamais sans l'option du site, et jamais l'activer (updateLinkSpotSettings) sans l'accord
+   explicite de l'utilisateur. Un spot « a_verifier » ou « joignable » n'est pas encore confirmé gratuit : vérifier avant de remplir.
+
 Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),
 puis addExternalContentIdea (idée seule) ou writeFromExternalContent (lance la rédaction : demander confirmation) ; listWatchedTopics,
@@ -247,6 +258,8 @@ function outilsDepuisSpec(spec) {
     for (const methode of METHODES) {
       const op = operations[methode];
       if (!op || !op.operationId) continue;
+      // Opérations d'entretien réservées (catalogue des spots…) : appelées en direct par leur module, pas des outils.
+      if (op['x-mcp-ignorer']) continue;
       const proprietes = {};
       const requis = [];
       const parametres = [];

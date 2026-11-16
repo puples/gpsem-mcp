@@ -148,6 +148,28 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    plafond restant) ; annoncer le coût et ne lancer runLocalGridScan qu'avec l'accord de l'utilisateur (confirmer=true au-delà du
    seuil). En mode demo les relevés sont simulés (donnees_fictives=true) : le dire. getLocalGridScan (points=1 pour le détail) :
    part top 3, rang moyen, part de voix, concurrents ; ne comparer que deux relevés de la même série (listLocalGridSeries).
+   Site : listLocalPages puis getLocalPageAudit (écarts fiche ↔ page, note, balisage) ; corriger la page = dans le CMS (le dire), la fiche =
+   proposeListingUpdate. generateLocalSchema donne le JSON-LD à coller (jamais de note auto-attribuée). fixListingLinksTracking prépare une
+   modification à valider. listDoorwayPageGroups : proposer enrichir / fusionner / rediriger, jamais supprimer sans accord. draftLocalPage :
+   relire les [À COMPLÉTER] avec l'utilisateur, ne rien inventer, refus normal pour un service × lieu sans différence réelle.
+   Publications : suggestPostIdeas / proposeEditorialPlan pour le fond, draftPost (refus si chiffre absent de la source), createPost avec
+   apercu=true d'abord (garde-fous, similarité entre établissements), puis createPost : la publication attend TOUJOURS une validation humaine.
+   Jamais de numéro de téléphone dans le texte. getMediaAudit pour les photos (l'envoi de photos se fait dans GPSEM) ; listLocationFaq /
+   saveLocationFaq : réponses vraies seulement.
+   Présence : getLocationPresence (a_verifier n'est JAMAIS une absence ; « forme » n'est pas une erreur), corriger d'abord la source amont.
+   scanCitations coûte quelques dixièmes de centime sur le DataForSEO de l'entreprise : accord de l'utilisateur hors démonstration.
+   recordCitation seulement avec ce que l'utilisateur a vu ou confirmé ; getPresenceMatrix pour un réseau (tâches par priorité).
+   Concurrence : listCompetitors (score expliqué : citer les composants et les manquants), compareCompetitors (écarts → action), runMarketStudy
+   (gratuit, lent) : signaux = HYPOTHÈSES, toujours citer les limites des données. listSuspiciousListings : dire « à examiner », jamais
+   « frauduleux » ; l'utilisateur signale lui-même.
+   Réseau : getNetworkDashboard (rangs, hors norme, groupes) ; previewBulkUpdate = aperçu seulement, puis appliquer=id après accord de
+   l'utilisateur (chaque fiche reste à valider) ; un champ verrouillé par le siège est refusé : ne pas insister, le dire. listApprovals
+   montre ce qui attend une personne : un agent ne valide jamais.
+   IA : getLocalAiVisibility (fréquence de citation sur plusieurs essais, pas un rang fixe ; faits erronés → source probable dans les
+   annuaires). runLocalAiScan consomme les clés IA de l'entreprise : annoncer estimation.appels et obtenir l'accord hors démonstration.
+   Prospection (agences) : scanProspects coûte environ 0,002 $ (accord hors démo), listProspects (chauds d'abord), getProspect.arguments
+   pour un message de prise de contact factuel ; jamais de donnée personnelle. Rapport : getLocalReport pour un bilan ;
+   shareLocalReport rend les chiffres lisibles par quiconque a le lien : demander l'accord.
 
 Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),

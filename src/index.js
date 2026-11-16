@@ -186,14 +186,14 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    journal-recent).
    Trouver un établissement non géré : findLocalBusiness (adresse Google Maps ou « nom, ville » ; la recherche par nom coûte un peu sur
    le DataForSEO de l'entreprise, refusée à un jeton en lecture seule) puis runQuickLocalGridScan (estimation_seule=true d'abord) ou,
-   pour un établissement géré, runLocalGridScan. compareLocalGridScans (a, b) : gagnés / perdus / en hausse / en baisse ; si
+   pour un établissement géré, runLocalGridScan. createLocationFromBusiness ajoute un établissement trouvé (sans lien Google, « à relier ») ; createLocation / updateLocation / tagLocations pour le réseau, planLocationLifeEvent pour un déménagement, une fermeture ou un changement d'enseigne (plan de tâches ; la fiche passe par la validation). compareLocalGridScans (a, b) : gagnés / perdus / en hausse / en baisse ; si
    grille_differente=true, ne rien conclure sans le dire. getLocalGridHeadToHead : ma grille face à celle d'un concurrent. Seuls les
    points « trouvé » et « absent » comptent dans les indicateurs ; « incomplet », « erreur », « non mesuré » sont exclus : le dire.
    Avis : listReviewAssignees / assignReview (seulement les personnes du site), getReviewTopicTrends (thèmes par mois),
    classifyReviewTopics consomme l'IA de l'entreprise (accord). Publications : la langue choisie est celle envoyée à Google ;
    searchStockImages / addStockImage (banque libre, auteur et licence gardés) et generatePostImage (IA de l'entreprise, accord) servent
    aux PUBLICATIONS seulement, jamais aux photos de la fiche. Établissements : searchLocations, listImportableLocations puis
-   importLocations (100 au plus, accord), getVerificationState, bulkResolveOutsideChanges (demander pour une gravité haute),
+   importSelectedLocations (100 au plus, accord), getVerificationState, bulkResolveOutsideChanges (demander pour une gravité haute),
    listCitations / saveCitation (ce que l'utilisateur a vu), searchCities. Recherche transversale : searchLocalEverything ;
    notifications du module : listLocalNotifications.
 

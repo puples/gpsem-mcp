@@ -176,7 +176,26 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    annuaires). runLocalAiScan consomme les clés IA de l'entreprise : annoncer estimation.appels et obtenir l'accord hors démonstration.
    Prospection (agences) : scanProspects coûte environ 0,002 $ (accord hors démo), listProspects (chauds d'abord), getProspect.arguments
    pour un message de prise de contact factuel ; jamais de donnée personnelle. Rapport : getLocalReport pour un bilan ;
-   shareLocalReport rend les chiffres lisibles par quiconque a le lien : demander l'accord.
+   shareLocalReport rend les chiffres lisibles par quiconque a le lien : demander l'accord, et consentement=true seulement si
+   l'utilisateur confirme que l'établissement a accepté ce lien public (durée 1, 7, 14 ou 30 jours).
+   Propositions en deux temps : proposeLocalAction prépare une action (réponse, publication, modification de fiche…) et renvoie un
+   identifiant valable 15 MINUTES avec « ce qu'elle fera » ; dire à l'utilisateur de l'appliquer dans GPSEM (écran Agents IA) avant
+   l'expiration — appliquer crée l'élément habituel en attente de validation, rien n'est publié. listLocalProposals / getLocalProposal
+   pour suivre, cancelLocalProposal si l'utilisateur renonce. Un blocage (garde-fou, champ verrouillé par le siège) est refusé : ne pas
+   contourner. Ressources utiles : listLocalResources puis getLocalResource (file-validations, propositions, changements-google,
+   journal-recent).
+   Trouver un établissement non géré : findLocalBusiness (adresse Google Maps ou « nom, ville » ; la recherche par nom coûte un peu sur
+   le DataForSEO de l'entreprise, refusée à un jeton en lecture seule) puis runQuickLocalGridScan (estimation_seule=true d'abord) ou,
+   pour un établissement géré, runLocalGridScan. compareLocalGridScans (a, b) : gagnés / perdus / en hausse / en baisse ; si
+   grille_differente=true, ne rien conclure sans le dire. getLocalGridHeadToHead : ma grille face à celle d'un concurrent. Seuls les
+   points « trouvé » et « absent » comptent dans les indicateurs ; « incomplet », « erreur », « non mesuré » sont exclus : le dire.
+   Avis : listReviewAssignees / assignReview (seulement les personnes du site), getReviewTopicTrends (thèmes par mois),
+   classifyReviewTopics consomme l'IA de l'entreprise (accord). Publications : la langue choisie est celle envoyée à Google ;
+   searchStockImages / addStockImage (banque libre, auteur et licence gardés) et generatePostImage (IA de l'entreprise, accord) servent
+   aux PUBLICATIONS seulement, jamais aux photos de la fiche. Établissements : searchLocations, listImportableLocations puis
+   importLocations (100 au plus, accord), getVerificationState, bulkResolveOutsideChanges (demander pour une gravité haute),
+   listCitations / saveCitation (ce que l'utilisateur a vu), searchCities. Recherche transversale : searchLocalEverything ;
+   notifications du module : listLocalNotifications.
 
 Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),

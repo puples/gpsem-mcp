@@ -202,6 +202,15 @@ analyzeExternalContent(url) pour juger si une page externe (concurrent, actualit
 puis addExternalContentIdea (idée seule) ou writeFromExternalContent (lance la rédaction : demander confirmation) ; listWatchedTopics,
 watchTopic, refreshTopicInsights, unwatchTopic pour la veille récurrente.
 
+Recherche et enrichissement de contenu (gratuit, sans Google) : getTopicIdeas pour des sujets que le site ne traite pas encore ;
+findEnrichmentSources(url ou sujet) pour étayer une page : Wikipedia et ses sources, publications, presse récente dans la langue du site et
+internationale, pages officielles, vidéos, images libres, chacune avec sa pertinence, le passage qu'elle étaye et les chiffres absents du
+contenu. searchWeb(q, type) pour une recherche ciblée sur le web : vérifier un fait ou un chiffre avant de l'écrire, trouver la page
+officielle à citer (type=web, résultats type_source officiel / scientifique en premier), l'actualité récente (type=actualite, periode=month),
+des études (type=science, requête en anglais), une vidéo ou une image libre (citer l'auteur, vérifier la licence sur sa page). Opérateurs
+acceptés : site:domaine, "expression exacte". searchWeb n'est pas la page de résultats Google : ne jamais en déduire des positions.
+Citer chaque source utilisée par son URL ; ne jamais présenter un résultat de recherche comme vérifié sans l'avoir lu.
+
 Justifier les recommandations : searchKnowledge cherche dans la documentation Google Search Central (en français) ; citer l'URL de la source.
 Les actions d'audit et les rapports de problèmes Screaming Frog portent déjà leurs references.
 

@@ -14,6 +14,8 @@
  *   GPSEM_EXPORT_DIR (facultatif)  dossier où les outils de lecture peuvent enregistrer leur réponse complète
  *                                  (arguments enregistrer_sous et toutes_les_pages) ; absent : pas d'export en fichier
  *   GPSEM_EXPORT_MAX_PAGES (facultatif) nombre maximal de pages enchaînées par toutes_les_pages (défaut 200)
+ *   GPSEM_MODULES    (facultatif)  modules chargés : seo, sea, local, netlinking (socle toujours) ; absent = tous
+ *   GPSEM_MODE       (facultatif)  decouverte = 3 outils (findTools, describeTool, callTool) au lieu de la liste complète
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -33,7 +35,41 @@ const EXPORT_MAX_PAGES = Math.max(1, Math.floor(Number(process.env.GPSEM_EXPORT_
 const EXPORT_EXTENSIONS = ['.json', '.jsonl', '.csv'];
 const METHODES = ['get', 'post', 'put', 'patch', 'delete'];
 
-const INSTRUCTIONS = `GPSEM est une plateforme SEO. Ces outils lisent et modifient les données d'un compte GPSEM (entreprise, sites, pages, audits).
+/**
+ * Modules : chaque outil appartient à un module, d'après le tag de son opération dans la spécification.
+ * Le socle est toujours chargé ; GPSEM_MODULES choisit les autres (absent = tous, comme avant la 0.17.0).
+ * Une opération peut fixer son module elle-même avec x-mcp-module ; un tag inconnu tombe dans le socle (l'outil n'est jamais perdu).
+ */
+const MODULES = {
+  socle: { libelle: 'compte, sites, historique, rapports, outils GPSEM, connaissances', tags: ['Auth', 'Compte', 'Entreprise', 'Site', 'Historique', 'Rapports', 'Outils GPSEM', 'Connaissances'] },
+  seo: { libelle: 'Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille', tags: ['Analyses', 'Sources de données', 'Audit', 'Contenus du site', 'Screaming Frog', 'Indexation', 'Rédaction', 'Synchronisation CMS', 'Opquast', 'Veille et tendances'] },
+  sea: { libelle: 'publicité : Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok', tags: ['Publicité'] },
+  local: { libelle: 'SEO local : établissements, fiches, avis, géogrille, publications', tags: ['SEO local'] },
+  netlinking: { libelle: 'backlinks, achat MyBack.link, spots de liens', tags: ['Backlinks', 'Spots de liens'] },
+};
+const ALIAS_MODULES = {
+  ads: 'sea', publicite: 'sea', pub: 'sea', 'seo-local': 'local', seolocal: 'local', liens: 'netlinking', backlinks: 'netlinking', link: 'netlinking',
+};
+// Outils rangés ailleurs que leur tag : les explorateurs d'intérêts Meta / TikTok (tag Analyses) servent la publicité, les outils transverses le socle
+const MODULE_PAR_CHEMIN = [[/\/(meta|tiktok)\//, 'sea']];
+const MODULE_PAR_OUTIL = { getTask: 'socle', searchEverywhere: 'socle', getSitePortfolio: 'socle' };
+
+function lireModules(brut) {
+  const noms = String(brut || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[\s,;]+/).filter(Boolean);
+  if (!noms.length || noms.some((n) => ['tout', 'tous', 'all', '*'].includes(n))) return new Set(Object.keys(MODULES));
+  const actifs = new Set(['socle']);
+  for (const n of noms) {
+    const m = ALIAS_MODULES[n] || n;
+    if (MODULES[m]) actifs.add(m);
+    else console.error(`GPSEM_MODULES : module inconnu « ${n} » ignoré (modules : ${Object.keys(MODULES).join(', ')}).`);
+  }
+  return actifs;
+}
+const MODULES_ACTIFS = lireModules(process.env.GPSEM_MODULES);
+const DECOUVERTE = ['decouverte', 'découverte', 'discovery'].includes(String(process.env.GPSEM_MODE || '').trim().toLowerCase());
+
+const CONSIGNES = [
+  ['socle', `GPSEM est une plateforme SEO et SEA. Ces outils lisent et modifient les données d'un compte GPSEM (entreprise, sites, pages, audits, publicité).
 
 Catalogue des rapports : listReportsForSite (ou listReports) donne tous les rapports disponibles — chaque section / question de l'audit complet,
 chaque problème Screaming Frog relevé, NavRank / ClickRank, Opquast, sources de données — avec l'outil et les arguments à utiliser, et ce qui est
@@ -52,13 +88,12 @@ Export en fichier : pour un export ou toute liste de plus de quelques centaines 
 de lire les tranches une à une ; travailler ensuite sur le fichier. enregistrer_sous = nom de fichier relatif en .json, .jsonl ou .csv, écrit dans
 ${EXPORT_DIR} ; la réponse complète va dans le fichier et l'outil ne renvoie qu'un accusé (chemin, taille, nombre de lignes, colonnes, aperçu).
 Disponible sur les outils de lecture ; mettre limit au maximum admis par l'outil pour réduire le nombre d'appels.
-` : ''}
-Données de trafic en direct, avec les connexions déjà faites dans GPSEM (rien à reconnecter) : querySearchConsole (dimensions query, page, date,
+` : ''}`],
+  ['seo', `Données de trafic en direct, avec les connexions déjà faites dans GPSEM (rien à reconnecter) : querySearchConsole (dimensions query, page, date,
 device, country ; search_type=discover pour Discover, qui n'accepte que page, date et country), queryAnalytics (rapport GA4 libre : dimensions et
 métriques GA4), queryBing, queryMerchant, queryYoutube. Une erreur source_not_connected signifie que la source n'est pas connectée pour ce site :
-le signaler à l'utilisateur (connexion à faire une fois dans GPSEM) plutôt que d'insister.
-
-Outils GPSEM (tableaux des écrans et de la boîte à outils) : listGpsemTools donne le catalogue groupé par thème — Indexation (pages non
+le signaler à l'utilisateur (connexion à faire une fois dans GPSEM) plutôt que d'insister.`],
+  ['socle', `Outils GPSEM (tableaux des écrans et de la boîte à outils) : listGpsemTools donne le catalogue groupé par thème — Indexation (pages non
 indexées, crawlées non indexées, non crawlées depuis N jours, indexées à risque, désindexations récentes, non indexées avec backlinks),
 Contenus et pruning, Mots-clés et Search Console (distribution, évolutions, questions, pages, cannibalisation), Maillage (orphelines, pages
 à mailler, clusters), Netlinking, Analytics et conversions, Planning éditorial — puis getGpsemTool(cle=…) pour les données (limit, page).
@@ -71,9 +106,8 @@ getDifferenceCapture donne le texte et les fichiers d'une capture ; listDifferen
 d'en relancer une). Utile devant une baisse de trafic datée, après un piratage, ou pour voir ce qu'un concurrent a modifié. Les dates sont
 des fourchettes entre deux captures de l'archive ; un outil « retiré » est une piste (il peut être chargé après consentement), pas une certitude.
 Chaque date de gros changement est placée par rapport aux mises à jour Google (champ google : pendant, entre — precedente / suivante avec
-l'écart en jours —, ou a_affiner : relancer avec du / au sur la fourchette). listGoogleUpdates (from, to, type) donne les mises à jour seules.
-
-CAS D'USAGE — enchaîner les outils plutôt que répondre sur un seul chiffre. Toujours dater (quand ça a commencé, sur quelles pages), puis
+l'écart en jours —, ou a_affiner : relancer avec du / au sur la fourchette). listGoogleUpdates (from, to, type) donne les mises à jour seules.`],
+  ['seo', `CAS D'USAGE SEO — enchaîner les outils plutôt que répondre sur un seul chiffre. Toujours dater (quand ça a commencé, sur quelles pages), puis
 chercher ce qui s'est passé à ce moment : sur le site (historique, archives), chez Google (mises à jour), dans les données (Search Console).
 
 1. Audit suite à un problème (baisse de trafic, désindexation, piratage) :
@@ -114,9 +148,8 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    requestIndexing pour signaler à Google des pages modifiées ou non indexées (lot = nonindexees), puis listIndexingRequests et un
    nouveau test quelques jours plus tard. Tester les pages utiles, pas tout le site à répétition (quota Search Console de 2 000
    inspections par jour et par site) ; une page non indexée qui reste non indexée malgré une demande est un problème de qualité ou
-   de maillage, pas d'envoi : le dire et chercher la cause (contenu, liens reçus, doublon, canonique).
-
-5. Liens obtenus soi-même (ninjalinking, JAMAIS d'achat) : getLinkSpotSettings (cibles du site : site, entreprise, personne ; pays ;
+   de maillage, pas d'envoi : le dire et chercher la cause (contenu, liens reçus, doublon, canonique).`],
+  ['netlinking', `Liens obtenus soi-même (ninjalinking, JAMAIS d'achat) : getLinkSpotSettings (cibles du site : site, entreprise, personne ; pays ;
    langues ; inscriptions par semaine au plus ; black hat autorisé ou non) ; listLinkPlansToDo (liens planifiés à réaliser) ;
    searchLinkSpots (planification=id pour un lien planifié, sinon type / cible / portée locale, nationale ou internationale / pays /
    gratuit / dofollow) ; getLinkSpot pour la procédure de LA cible choisie (sur un même site, l'inscription d'une entreprise et celle
@@ -125,9 +158,8 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    url_profil (la page où se trouve le lien) et planification_id. CAPTCHA, code reçu par SMS ou e-mail illisible, paiement demandé :
    s'arrêter, laisser en_cours avec une note, ou ecarte si le site est devenu payant.
    Respecter le rythme par semaine. Black hat : jamais sans l'option du site, et jamais l'activer (updateLinkSpotSettings) sans l'accord
-   explicite de l'utilisateur. Un spot « a_verifier » ou « joignable » n'est pas encore confirmé gratuit : vérifier avant de remplir.
-
-6. SEO local (préversion, entreprises autorisées seulement ; 403 ailleurs) : getLocalModuleStatus d'abord — en mode demo, toutes les
+   explicite de l'utilisateur. Un spot « a_verifier » ou « joignable » n'est pas encore confirmé gratuit : vérifier avant de remplir.`],
+  ['local', `SEO local (préversion, entreprises autorisées seulement ; 403 ailleurs) : getLocalModuleStatus d'abord — en mode demo, toutes les
    fiches, statistiques et expressions sont FICTIVES : le dire, ne jamais les présenter comme des données réelles. getLocalDashboard
    (vues, actions, changements à traiter, modifications en attente), listLocations puis getLocation (référence GPSEM, fiche publiée,
    écarts ; fraiche=1 pour relire). Modifier une fiche : previewListingUpdate (garde-fous : un blocage se corrige, un avertissement se
@@ -195,9 +227,18 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    aux PUBLICATIONS seulement, jamais aux photos de la fiche. Établissements : searchLocations, listImportableLocations puis
    importSelectedLocations (100 au plus, accord), getVerificationState, bulkResolveOutsideChanges (demander pour une gravité haute),
    listCitations / saveCitation (ce que l'utilisateur a vu), searchCities. Recherche transversale : searchLocalEverything ;
-   notifications du module : listLocalNotifications.
-
-Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
+   notifications du module : listLocalNotifications.`],
+  ['sea', `SEA (publicité : Google Ads, Microsoft Ads, Meta Ads, LinkedIn et autres régies connectées dans GPSEM) : getAdsCampaigns pour l'état
+des comptes, getAdsAudit / runAdsAudit (note sur 100, priorités chiffrées en €/30 j), diagnoseAdsChange AVANT de conseiller un changement après
+une baisse (délai de conversion, suivi, demande, budget, saison), getAdsSafetyRules pour expliquer pourquoi une règle ne propose rien ou
+pourquoi un changement est bloqué. Modifier un compte de préférence en deux temps : runAdsRule puis proposeAdsRuleRows (ou addAdsProposals)
+met les lignes dans la file sans rien changer ; getAdsProposals montre la file ; l'utilisateur décide (decideAdsProposals) ; puis
+applyAdsProposals. Une écriture directe (applyAdsRule, excludePaidTerms, setAdsBudgets, setMetaAdsBudget, setMetaAdsStatus…) touche un budget
+réel : dry_run=true d'abord quand l'outil l'accepte, accord explicite de l'utilisateur, et jamais force=true sans qu'il l'ait demandé après
+avoir lu les alertes. Chaque écriture est inscrite au journal (getAdsChangeHistory) et annulable (undoAdsAction, undoMetaAdsAction).
+prepareMetaBoost crée tout EN PAUSE : rien n'est dépensé tant que la personne ne l'active pas dans Meta. Intérêts Meta / TikTok
+(searchMetaInterests, estimateMetaAudience, searchTiktokInterests…) : préparation du ciblage, sans dépense.`],
+  ['seo', `Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),
 puis addExternalContentIdea (idée seule) ou writeFromExternalContent (lance la rédaction : demander confirmation) ; listWatchedTopics,
 watchTopic, refreshTopicInsights, unwatchTopic pour la veille récurrente.
@@ -209,12 +250,10 @@ contenu. searchWeb(q, type) pour une recherche ciblée sur le web : vérifier un
 officielle à citer (type=web, résultats type_source officiel / scientifique en premier), l'actualité récente (type=actualite, periode=month),
 des études (type=science, requête en anglais), une vidéo ou une image libre (citer l'auteur, vérifier la licence sur sa page). Opérateurs
 acceptés : site:domaine, "expression exacte". searchWeb n'est pas la page de résultats Google : ne jamais en déduire des positions.
-Citer chaque source utilisée par son URL ; ne jamais présenter un résultat de recherche comme vérifié sans l'avoir lu.
-
-Justifier les recommandations : searchKnowledge cherche dans la documentation Google Search Central (en français) ; citer l'URL de la source.
-Les actions d'audit et les rapports de problèmes Screaming Frog portent déjà leurs references.
-
-Éditeurs de contenu — le format du contenu dépend de l'éditeur de la page. Lire getPage (content=1) AVANT toute modification de contenu : le champ
+Citer chaque source utilisée par son URL ; ne jamais présenter un résultat de recherche comme vérifié sans l'avoir lu.`],
+  ['socle', `Justifier les recommandations : searchKnowledge cherche dans la documentation Google Search Central (en français) ; citer l'URL de la source.
+Les actions d'audit et les rapports de problèmes Screaming Frog portent déjà leurs references.`],
+  ['seo', `Éditeurs de contenu — le format du contenu dépend de l'éditeur de la page. Lire getPage (content=1) AVANT toute modification de contenu : le champ
 editor vaut classique, gutenberg, elementor ou flexible, et content_type donne le type de contenu (page, post, slug d'un type).
 - classique : content est du HTML simple (titres à partir de h2, paragraphes, listes, liens, images) ; l'écrire tel quel avec updatePage.
 - gutenberg (éditeur de blocs WordPress) : content porte les blocs, délimités par des commentaires <!-- wp:nom {attributs} --> … <!-- /wp:nom -->.
@@ -241,13 +280,11 @@ widgets Elementor du site (refresh=1 réinterroge le site) ; updateContentEditor
 que s'il est détecté sur le site, erreur elementor_unavailable sinon.
 Si un autre MCP branché directement sur le site est disponible (WordPress / Gutenberg, Elementor), il peut servir à lire ou à préparer une mise
 en page, mais écrire par GPSEM pour que la modification soit tracée dans l'historique et suivie. Une page modifiée directement sur le site doit
-être réimportée (pullPageFromCms) avant d'être retravaillée ici : sinon le prochain envoi de GPSEM écrase cette modification.
-
-Tracer chaque modification dans l'historique (addSiteHistorique) : c'est ce qui permet à GPSEM de mesurer l'effet des changements sur le trafic.
+être réimportée (pullPageFromCms) avant d'être retravaillée ici : sinon le prochain envoi de GPSEM écrase cette modification.`],
+  ['socle', `Tracer chaque modification dans l'historique (addSiteHistorique) : c'est ce qui permet à GPSEM de mesurer l'effet des changements sur le trafic.
 Lire d'abord getHistoriqueCodes et choisir le code le plus précis de la cible (100 site, 300 page, 310 catégorie, 320 archive) ; sinon le code générique
-(100-09-001, 300-09-001, 310-09-001, 320-09-001) avec une description claire et l'avant / après dans details. updatePage et createPage écrivent leur historique eux-mêmes.
-
-Maillage interne — chaque lien ajouté doit être tracé, page par page : addSiteHistorique code=300-02-003, page_id = la page qui REÇOIT le lien,
+(100-09-001, 300-09-001, 310-09-001, 320-09-001) avec une description claire et l'avant / après dans details. updatePage et createPage écrivent leur historique eux-mêmes.`],
+  ['seo', `Maillage interne — chaque lien ajouté doit être tracé, page par page : addSiteHistorique code=300-02-003, page_id = la page qui REÇOIT le lien,
 source_page_id = la page qui CONTIENT le lien, date = jour de mise en ligne, details.ancre = l'ancre (une entrée par lien). GPSEM peut alors dire
 « la page 123 a reçu un lien de la page 456 le 12/09 » et vérifier si Google l'a recrawlée ou indexée ensuite : getPageLinksReceived (par page),
 outil liens_internes_recents (tout le site). Avant de proposer du maillage, lire l'historique de la page (getPage → history, links_received).
@@ -272,16 +309,34 @@ category_id, évaluer chaque règle sur des preuves (crawl Screaming Frog : getS
 pages : getPage avec content=1, listPages ; mentions légales : getLegalNotice ; paramètres du site) et répondre par lots avec answerOpquastRules :
 result conforme / non_conforme et un commentaire qui dit ce qui a été vérifié (pages, source) et, si non conforme, la correction attendue.
 Une règle qui ne peut pas être vérifiée avec les données disponibles reste conforme par défaut mais reçoit un commentaire « à vérifier manuellement ».
-Terminer chaque catégorie par une synthèse (updateOpquastCategory comment). Toutes les réponses restent modifiables dans GPSEM (lien renvoyé).
-
-Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autorisé, plafonds, dépense du mois, crédit, coût des options, ancres déjà utilisées),
+Terminer chaque catégorie par une synthèse (updateOpquastCategory comment). Toutes les réponses restent modifiables dans GPSEM (lien renvoyé).`],
+  ['netlinking', `Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autorisé, plafonds, dépense du mois, crédit, coût des options, ancres déjà utilisées),
 choisir les pages cibles à partir des données GPSEM (pages performantes fragilisées, mots-clés en page 2, backlinks perdus), puis présenter la commande
-(URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.
-
-Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), requestIndexing (API Indexing de Google, quota), runIndexTests sur beaucoup de pages (quota Search Console), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), runLinkCorrection (modifie les contenus et les renvoie au CMS), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
+(URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.`],
+  ['socle', `Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), requestIndexing (API Indexing de Google, quota), runIndexTests sur beaucoup de pages (quota Search Console), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), runLinkCorrection (modifie les contenus et les renvoie au CMS), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
 createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateContentEditors, updateLegalNotice,
 updatePage avec editor=elementor ou editor=classique (remplace la mise en page de la page).
-Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut pending à relire.`;
+Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut pending à relire.`],
+];
+
+/** Consignes envoyées au client : sections des modules chargés, et l'état des modules pour que l'assistant sache quoi demander. */
+function consignes() {
+  const charges = Object.keys(MODULES).filter((m) => MODULES_ACTIFS.has(m));
+  const absents = Object.keys(MODULES).filter((m) => !MODULES_ACTIFS.has(m));
+  const parties = CONSIGNES.filter(([m]) => MODULES_ACTIFS.has(m)).map(([, t]) => t.trim());
+  let entete = `Modules chargés : ${charges.join(', ')}.`;
+  if (absents.length) {
+    entete += ` Non chargés : ${absents.map((m) => `${m} (${MODULES[m].libelle})`).join(' ; ')}. Pour une demande qui en relève, dire à l'utilisateur`
+      + ` d'ajouter le module dans la variable GPSEM_MODULES de la configuration du serveur MCP GPSEM (ex. GPSEM_MODULES=${[...charges.filter((m) => m !== 'socle'), absents[0]].join(',')}).`;
+  }
+  if (DECOUVERTE) {
+    entete += `\n\nMODE DÉCOUVERTE : les outils GPSEM ne sont pas listés un par un. findTools(q) cherche les outils par mots en français ou en anglais`
+      + ` (ex. « pages en chute », « budget meta », « search console requêtes ») et renvoie nom, titre, module et arguments ; describeTool(names) donne`
+      + ` le schéma complet ; callTool(name, arguments) appelle l'outil. Les outils cités dans ces consignes (getMe, listSites, querySearchConsole…)`
+      + ` s'appellent directement par callTool ; describeTool seulement en cas de doute sur les arguments.`;
+  }
+  return `${parties[0]}\n\n${entete}\n\n${parties.slice(1).join('\n\n')}`;
+}
 
 /** Appel HTTP à l'API GPSEM ; renvoie { status, body } avec body décodé si JSON. */
 async function appeler(methode, chemin, { query = {}, body } = {}) {
@@ -339,6 +394,10 @@ function outilsDepuisSpec(spec) {
       if (!op || !op.operationId) continue;
       // Opérations d'entretien réservées (catalogue des spots…) : appelées en direct par leur module, pas des outils.
       if (op['x-mcp-ignorer']) continue;
+      const tag = (op.tags || [])[0] || '';
+      const parTag = Object.keys(MODULES).find((m) => MODULES[m].tags.includes(tag));
+      const module = (MODULES[op['x-mcp-module']] && op['x-mcp-module']) || MODULE_PAR_OUTIL[op.operationId]
+        || MODULE_PAR_CHEMIN.find(([re]) => re.test(chemin))?.[1] || parTag || 'socle';
       const proprietes = {};
       const requis = [];
       const parametres = [];
@@ -403,6 +462,10 @@ function outilsDepuisSpec(spec) {
         chemin,
         parametres,
         corps,
+        module,
+        tag,
+        tagInconnu: module === 'socle' && !parTag && !MODULES[op['x-mcp-module']] && !MODULE_PAR_OUTIL[op.operationId],
+        description: op.description || '',
       });
     }
   }
@@ -664,9 +727,213 @@ async function outils() {
   return outilsCache;
 }
 
+/** Outils des modules chargés (GPSEM_MODULES). */
+async function outilsActifs() {
+  return (await outils()).filter((o) => MODULES_ACTIFS.has(o.module));
+}
+
+/** Appel d'un outil GPSEM avec ses arguments, export en fichier compris ; renvoie le résultat MCP. */
+async function lancerOutil(outil, args = {}) {
+  try {
+    // Export en fichier, sauf si l'API a elle-même un paramètre de ce nom
+    if (args.enregistrer_sous !== undefined && args.enregistrer_sous !== '' && !outil.parametres.some((p) => p.nom === 'enregistrer_sous')
+      && !outil.corps?.champs?.includes('enregistrer_sous')) {
+      const e = await exporter(outil, args, args.enregistrer_sous, args.toutes_les_pages === true || args.toutes_les_pages === 'true');
+      return { isError: e.erreur, content: [{ type: 'text', text: e.texte }] };
+    }
+    const r = await executer(outil, args);
+    return { isError: r.status >= 400, content: [{ type: 'text', text: texteReponse(r) }] };
+  } catch (e) {
+    return { isError: true, content: [{ type: 'text', text: `Échec de l'appel à GPSEM : ${e.message}` }] };
+  }
+}
+
+/** Outil absent des modules chargés : dire lequel l'apporte plutôt que « inconnu ». */
+async function outilIntrouvable(nom) {
+  const ailleurs = (await outils()).find((o) => o.definition.name === nom);
+  if (ailleurs) {
+    return `L'outil ${nom} appartient au module « ${ailleurs.module} », non chargé. Demander à l'utilisateur d'ajouter ${ailleurs.module} `
+      + `dans GPSEM_MODULES (configuration du serveur MCP GPSEM, modules chargés : ${[...MODULES_ACTIFS].join(', ')}).`;
+  }
+  return `Outil inconnu : ${nom}.${DECOUVERTE ? ' Chercher le bon nom avec findTools.' : ''}`;
+}
+
+// ---- Mode découverte : trois outils au lieu de la liste complète ----
+
+const MOTS_VIDES = new Set(('de du des la le les un une et ou en sur par pour au aux a l d dans avec sans est qui que quoi mon ma mes son sa ses '
+  + 'the of for to in on and or by with a an is my get list').split(' '));
+
+function normaliser(t) {
+  return String(t || '').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+function mots(t) {
+  return normaliser(t).split(/[^a-z0-9]+/).filter((m) => m.length > 1 && !MOTS_VIDES.has(m));
+}
+
+let indexRecherche = null;
+async function index() {
+  if (indexRecherche) return indexRecherche;
+  indexRecherche = (await outilsActifs()).map((o) => ({
+    outil: o,
+    champs: [
+      [new Set(mots(o.definition.name)), 3],
+      [new Set(mots(o.definition.title)), 2.5],
+      [new Set(mots(`${o.chemin} ${o.tag} ${o.module}`)), 1.5],
+      [new Set(mots(o.description)), 1],
+    ],
+  }));
+  return indexRecherche;
+}
+
+/** Score d'un outil pour une requête : mot exact, ou même racine (début commun), pondéré par le champ. */
+function score(entree, termes) {
+  let total = 0;
+  let trouves = 0;
+  for (const t of termes) {
+    const racine = t.slice(0, Math.max(4, t.length - 2));
+    let meilleur = 0;
+    for (const [ens, poids] of entree.champs) {
+      if (ens.has(t)) meilleur = Math.max(meilleur, poids);
+      else if (racine.length >= 4) {
+        for (const m of ens) if (m.startsWith(racine) || (m.length >= 4 && t.startsWith(m))) { meilleur = Math.max(meilleur, poids * 0.6); break; }
+      }
+    }
+    if (meilleur) trouves += 1;
+    total += meilleur;
+  }
+  return trouves ? total * (trouves / termes.length) : 0;
+}
+
+function fiche(o) {
+  const props = o.definition.inputSchema.properties || {};
+  const requis = o.definition.inputSchema.required || [];
+  const desc = o.description.length > 260 ? `${o.description.slice(0, 260)}…` : o.description;
+  return {
+    name: o.definition.name,
+    titre: o.definition.title,
+    module: o.module,
+    lecture: o.methode === 'get',
+    requis,
+    facultatifs: Object.keys(props).filter((k) => !requis.includes(k)),
+    ...(desc ? { description: desc } : {}),
+  };
+}
+
+const OUTILS_DECOUVERTE = [
+  {
+    name: 'findTools',
+    title: 'Chercher un outil GPSEM',
+    description: `Cherche parmi les outils GPSEM des modules chargés (${[...MODULES_ACTIFS].join(', ')}) : mots en français ou en anglais`
+      + ' (ex. « pages en chute », « budget meta », « search console requêtes », « avis établissement »). Renvoie nom, titre, module, lecture'
+      + ' seule ou écriture, arguments requis et facultatifs. Sans q : la liste des noms d\'un module (module=…).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        q: { type: 'string', description: 'Ce que l\'outil doit faire, en quelques mots.' },
+        module: { type: 'string', enum: [...MODULES_ACTIFS], description: 'Limiter à un module.' },
+        lecture_seule: { type: 'boolean', description: 'true : seulement les outils qui ne modifient rien.' },
+        limit: { type: 'integer', default: 12, minimum: 1, maximum: 50 },
+      },
+    },
+    annotations: { title: 'Chercher un outil GPSEM', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: 'describeTool',
+    title: 'Schéma d\'un outil GPSEM',
+    description: 'Description complète et schéma des arguments (JSON Schema) d\'un ou plusieurs outils GPSEM, avant callTool.',
+    inputSchema: {
+      type: 'object',
+      properties: { names: { type: 'array', items: { type: 'string' }, maxItems: 10, description: 'Noms d\'outils (findTools → name).' } },
+      required: ['names'],
+    },
+    annotations: { title: 'Schéma d\'un outil GPSEM', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: 'callTool',
+    title: 'Appeler un outil GPSEM',
+    description: 'Appelle un outil GPSEM par son nom avec ses arguments (mêmes arguments que l\'outil, dont siteId, limit, page'
+      + `${EXPORT_DIR ? ', enregistrer_sous, toutes_les_pages' : ''}). Les outils d'écriture modifient réellement le compte : mêmes précautions que dans les consignes.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Nom de l\'outil (ex. getMe, listSites, querySearchConsole).' },
+        arguments: { type: 'object', additionalProperties: true, description: 'Arguments de l\'outil.' },
+      },
+      required: ['name'],
+    },
+    annotations: { title: 'Appeler un outil GPSEM', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
+];
+
+async function decouvrir(nom, args = {}) {
+  const texte = (x) => ({ content: [{ type: 'text', text: typeof x === 'string' ? x : JSON.stringify(x, null, 1) }] });
+  if (nom === 'findTools') {
+    const limit = Math.min(50, Math.max(1, Math.floor(Number(args.limit)) || 12));
+    let entrees = await index();
+    if (args.module) entrees = entrees.filter((e) => e.outil.module === args.module);
+    if (args.lecture_seule === true || args.lecture_seule === 'true') entrees = entrees.filter((e) => e.outil.methode === 'get');
+    const termes = mots(args.q);
+    if (!termes.length) {
+      if (!args.module) {
+        const parModule = {};
+        for (const e of entrees) parModule[e.outil.module] = (parModule[e.outil.module] || 0) + 1;
+        return texte({ consigne: 'Donner q (ce que l\'outil doit faire) ou module pour la liste des noms.', outils_par_module: parModule });
+      }
+      return texte({ module: args.module, total: entrees.length, outils: entrees.map((e) => `${e.outil.definition.name} — ${e.outil.definition.title}`) });
+    }
+    const tries = entrees.map((e) => ({ e, s: score(e, termes) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s);
+    // Les correspondances lointaines (un seul mot partagé avec la description) sont écartées quand de bien meilleures existent
+    const classes = tries.filter((x) => x.s >= (tries[0]?.s || 0) * 0.3);
+    if (!classes.length) {
+      return texte(`Aucun outil trouvé pour « ${args.q} » dans les modules chargés (${[...MODULES_ACTIFS].join(', ')}). Essayer d'autres mots,`
+        + ' ou findTools sans q avec module=… pour la liste.');
+    }
+    return texte({ q: args.q, trouves: classes.length, outils: classes.slice(0, limit).map((x) => fiche(x.e.outil)) });
+  }
+  if (nom === 'describeTool') {
+    const noms = [].concat(args.names ?? args.name ?? []).map(String).slice(0, 10);
+    if (!noms.length) return { isError: true, ...texte('names attendu : liste de noms d\'outils (findTools → name).') };
+    const actifs = await outilsActifs();
+    const sorties = [];
+    for (const n of noms) {
+      const o = actifs.find((x) => x.definition.name === n);
+      sorties.push(o ? { ...o.definition, module: o.module } : { name: n, erreur: await outilIntrouvable(n) });
+    }
+    return texte(sorties);
+  }
+  if (nom === 'callTool') {
+    const o = (await outilsActifs()).find((x) => x.definition.name === args.name);
+    if (!o) return { isError: true, ...texte(await outilIntrouvable(args.name)) };
+    let a = args.arguments ?? {};
+    if (typeof a === 'string') {
+      try { a = JSON.parse(a); } catch { return { isError: true, ...texte('arguments doit être un objet JSON.') }; }
+    }
+    return lancerOutil(o, a);
+  }
+  return { isError: true, ...texte(`Outil inconnu : ${nom}. Outils du mode découverte : findTools, describeTool, callTool.`) };
+}
+
 async function main() {
   if (process.argv.includes('--list-tools')) {
-    for (const o of await outils()) console.log(`${o.definition.name.padEnd(30)} ${o.methode.toUpperCase().padEnd(6)} ${o.chemin}`);
+    const tous = await outils();
+    for (const o of tous.filter((x) => MODULES_ACTIFS.has(x.module))) {
+      console.log(`${o.definition.name.padEnd(32)} ${o.module.padEnd(11)} ${o.methode.toUpperCase().padEnd(6)} ${o.chemin}`);
+    }
+    console.log('\nModule       outils   ≈ tokens   chargé');
+    for (const m of Object.keys(MODULES)) {
+      const liste = tous.filter((o) => o.module === m);
+      const poids = Math.round(liste.reduce((s, o) => s + JSON.stringify(o.definition).length, 0) / 3.5);
+      console.log(`${m.padEnd(12)} ${String(liste.length).padStart(6)} ${String(poids).padStart(10)}   ${MODULES_ACTIFS.has(m) ? 'oui' : 'non'}`);
+    }
+    const c = consignes();
+    console.log(`consignes : ${c.length} caractères (≈ ${Math.round(c.length / 3.5)} tokens, hors résumé des rapports)`
+      + `${DECOUVERTE ? ' ; mode découverte : 3 outils envoyés' : ''}`);
+    const inconnus = [...new Set(tous.filter((o) => o.tagInconnu).map((o) => o.tag || '(sans tag)'))];
+    if (inconnus.length) console.log(`\nATTENTION tags sans module (rangés dans le socle) : ${inconnus.join(', ')} — les ajouter à MODULES.`);
+    return;
+  }
+  if (process.argv.includes('--consignes')) {
+    console.log(consignes());
     return;
   }
   if (!TOKEN) {
@@ -675,9 +942,12 @@ async function main() {
   }
 
   const server = new Server({ name: 'gpsem', version: VERSION },
-    { capabilities: { tools: {}, resources: {} }, instructions: INSTRUCTIONS + (await resumeRapports()) });
+    { capabilities: { tools: {}, resources: {} }, instructions: consignes() + (await resumeRapports()) });
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: (await outils()).map((o) => o.definition) }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: DECOUVERTE ? OUTILS_DECOUVERTE.map(({ name, title, description, inputSchema, annotations }) => ({ name, title, description, inputSchema, annotations }))
+      : (await outilsActifs()).map((o) => o.definition),
+  }));
 
   // Catalogue des rapports en ressources MCP : général, et par site si GPSEM_SITE_ID est défini
   const ressources = [{ uri: 'gpsem://rapports', chemin: '/rapports', name: 'Catalogue des rapports GPSEM',
@@ -700,23 +970,18 @@ async function main() {
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (requete) => {
-    const outil = (await outils()).find((o) => o.definition.name === requete.params.name);
-    if (!outil) {
-      return { isError: true, content: [{ type: 'text', text: `Outil inconnu : ${requete.params.name}` }] };
-    }
-    try {
-      const args = requete.params.arguments || {};
-      // Export en fichier, sauf si l'API a elle-même un paramètre de ce nom
-      if (args.enregistrer_sous !== undefined && args.enregistrer_sous !== '' && !outil.parametres.some((p) => p.nom === 'enregistrer_sous')
-        && !outil.corps?.champs?.includes('enregistrer_sous')) {
-        const e = await exporter(outil, args, args.enregistrer_sous, args.toutes_les_pages === true || args.toutes_les_pages === 'true');
-        return { isError: e.erreur, content: [{ type: 'text', text: e.texte }] };
+    const nom = requete.params.name;
+    const args = requete.params.arguments || {};
+    if (DECOUVERTE) {
+      try {
+        return await decouvrir(nom, args);
+      } catch (e) {
+        return { isError: true, content: [{ type: 'text', text: `Échec : ${e.message}` }] };
       }
-      const r = await executer(outil, args);
-      return { isError: r.status >= 400, content: [{ type: 'text', text: texteReponse(r) }] };
-    } catch (e) {
-      return { isError: true, content: [{ type: 'text', text: `Échec de l'appel à GPSEM : ${e.message}` }] };
     }
+    const outil = (await outilsActifs()).find((o) => o.definition.name === nom);
+    if (!outil) return { isError: true, content: [{ type: 'text', text: await outilIntrouvable(nom) }] };
+    return lancerOutil(outil, args);
   });
 
   await server.connect(new StdioServerTransport());

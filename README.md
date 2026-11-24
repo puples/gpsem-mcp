@@ -60,8 +60,39 @@ Dans le fichier de configuration MCP du client (`claude_desktop_config.json`, `.
 | `GPSEM_MAX_CHARS` | facultatif | Taille maximale d'une réponse transmise à l'assistant (défaut 60 000 caractères) |
 | `GPSEM_EXPORT_DIR` | facultatif | Dossier où l'assistant peut enregistrer les réponses complètes en fichier (voir *Export en fichier*). Absent : pas d'export en fichier |
 | `GPSEM_EXPORT_MAX_PAGES` | facultatif | Nombre maximal de pages enchaînées par `toutes_les_pages` (défaut 200) |
+| `GPSEM_MODULES` | facultatif | Modules chargés, séparés par des virgules : `seo`, `sea`, `local`, `netlinking` (le socle est toujours chargé). Absent : tous les modules |
+| `GPSEM_MODE` | facultatif | `decouverte` : 3 outils seulement (`findTools`, `describeTool`, `callTool`) au lieu de la liste complète. Absent : liste complète |
 
 Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM, sans intermédiaire.
+
+### Modules et mode découverte
+
+Avec tous les modules, le serveur décrit près de 500 outils à l'assistant au début de chaque conversation, soit environ 125 000 tokens. Ne chargez que les modules utiles :
+
+| Module | Contenu | Outils | ≈ tokens |
+|---|---|---|---|
+| socle (toujours) | compte, sites, historique, rapports, outils GPSEM, connaissances | 40 | 11 500 |
+| `seo` | Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille | 149 | 44 000 |
+| `sea` | publicité : Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok | 92 | 23 500 |
+| `local` | SEO local : établissements, fiches, avis, géogrille, publications | 179 | 43 500 |
+| `netlinking` | backlinks, achat MyBack.link, spots de liens | 15 | 4 000 |
+
+Les consignes envoyées à l'assistant ne contiennent que celles des modules chargés. Un outil d'un module absent n'est pas appelable ; l'assistant indique alors quel module ajouter.
+
+Le **mode découverte** (`GPSEM_MODE=decouverte`) n'envoie que 3 outils, quel que soit le nombre de modules : l'assistant cherche l'outil voulu (`findTools`, en français ou en anglais), lit son schéma si besoin (`describeTool`) et l'appelle (`callTool`). Il coûte un aller-retour de plus par outil, mais convient aux clients qui limitent le nombre d'outils (128 pour les modèles OpenAI, moins dans certains éditeurs) ou à qui veut tous les modules sans tout charger.
+
+Plusieurs serveurs pour la même entreprise, un par usage :
+
+```json
+{
+  "mcpServers": {
+    "gpsem-seo": { "command": "npx", "args": ["-y", "github:puples/gpsem-mcp"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token", "GPSEM_MODULES": "seo,netlinking" } },
+    "gpsem-sea": { "command": "npx", "args": ["-y", "github:puples/gpsem-mcp"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token", "GPSEM_MODULES": "sea" } }
+  }
+}
+```
+
+`npm run check` (ou `node src/index.js --list-tools`) affiche les outils chargés et le poids de chaque module ; `node src/index.js --consignes` affiche les consignes envoyées.
 
 ## Exemples de demandes
 

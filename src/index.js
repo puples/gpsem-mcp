@@ -276,6 +276,14 @@ réel : dry_run=true d'abord quand l'outil l'accepte, accord explicite de l'util
 avoir lu les alertes. Chaque écriture est inscrite au journal (getAdsChangeHistory) et annulable (undoAdsAction, undoMetaAdsAction).
 prepareMetaBoost crée tout EN PAUSE : rien n'est dépensé tant que la personne ne l'active pas dans Meta. Intérêts Meta / TikTok
 (searchMetaInterests, estimateMetaAudience, searchTiktokInterests…) : préparation du ciblage, sans dépense.
+Lecture libre : quand aucun outil prêt ne répond (une métrique, un segment, une ressource rare), queryGoogleAds (GAQL en lecture seule,
+plafond 10 000 lignes, page / limit, flat=1 pour un tableau ; montants en micros) après getGoogleAdsFields(resource) pour les noms de
+champs — ne jamais les deviner. Pour un gros export : enregistrer_sous + toutes_les_pages.
+Organiser : listAdsLabels, createAdsLabel puis setAdsLabels (campagnes, groupes, mots-clés « groupe~critère », compte) pour marquer ce
+qui a été modifié ou testé ; sans effet sur la diffusion, journal et annulation.
+Éléments d'une campagne existante : listAdsElements (ce qui est en place), puis addAdsElements (liens annexes, accroches, extraits
+structurés, appel, images) : par défaut dans la file à valider ; mode=appliquer seulement sur demande explicite (les annonces en ligne
+changent) ; dry_run=true pour faire vérifier par Google. Extraits : en-tête de la liste de Google (Marques, Types, Modèles…), 3 à 10 valeurs.
 Rôle de conseil : diagnostiquer, expliquer, proposer des changements dans la file ; juger un CPA ou un ROAS face à la fiche économique
 (getAdsEconomics : cibles et équilibre). Créer une nouvelle campagne relève du module « campagnes » (agent de création) : s'il n'est pas
 chargé, le dire à l'utilisateur plutôt que d'improviser.`],
@@ -285,6 +293,7 @@ chargé, le dire à l'utilisateur plutôt que d'improviser.`],
    l'aveugle) ; DEMAND_GEN (Discover, Gmail, YouTube) pour créer de la demande avec de belles images ; YOUTUBE (vidéo, par Demand Gen)
    seulement si l'entreprise a des vidéos YouTube (adresse ou identifiant ; ne jamais en inventer) ; DISPLAY en remarketing ou notoriété
    locale. Les règles de chaque type (textes, images, vidéos) : listCampaignPlans → elements_par_type, strategies_par_type.
+   Donnée introuvable dans les outils : queryGoogleAds (GAQL en lecture) après getGoogleAdsFields.
    Images (types visuels) : suggestAdImages(url d'une page du site) puis importAdImage(url, format paysage / carre / portrait / logo) ;
    images du site ou fournies par l'utilisateur seulement ; l'identifiant rendu va dans visuel.images ou marque.logos.
    Audience (plan.audience) : pour Performance Max c'est un SIGNAL (Google peut aller au-delà), pour Demand Gen / YouTube / Display un

@@ -52,7 +52,8 @@ const ALIAS_MODULES = {
 };
 // Outils rangés ailleurs que leur tag : les explorateurs d'intérêts Meta / TikTok (tag Analyses) servent la publicité, les outils transverses le socle
 const MODULE_PAR_CHEMIN = [[/\/(meta|tiktok)\//, 'sea']];
-const MODULE_PAR_OUTIL = { getTask: 'socle', searchEverywhere: 'socle', getSitePortfolio: 'socle' };
+// Lire les pages du site sert à tous les modules (annonces, fiches, contenus) : dans le socle
+const MODULE_PAR_OUTIL = { getTask: 'socle', searchEverywhere: 'socle', getSitePortfolio: 'socle', listPages: 'socle', getPage: 'socle' };
 
 function lireModules(brut) {
   const noms = String(brut || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[\s,;]+/).filter(Boolean);
@@ -237,7 +238,30 @@ applyAdsProposals. Une écriture directe (applyAdsRule, excludePaidTerms, setAds
 réel : dry_run=true d'abord quand l'outil l'accepte, accord explicite de l'utilisateur, et jamais force=true sans qu'il l'ait demandé après
 avoir lu les alertes. Chaque écriture est inscrite au journal (getAdsChangeHistory) et annulable (undoAdsAction, undoMetaAdsAction).
 prepareMetaBoost crée tout EN PAUSE : rien n'est dépensé tant que la personne ne l'active pas dans Meta. Intérêts Meta / TikTok
-(searchMetaInterests, estimateMetaAudience, searchTiktokInterests…) : préparation du ciblage, sans dépense.`],
+(searchMetaInterests, estimateMetaAudience, searchTiktokInterests…) : préparation du ciblage, sans dépense.
+
+CRÉER UNE CAMPAGNE GOOGLE ADS (ex. « une campagne pour une entreprise d'électricité industrielle en Haute-Savoie, uniquement en local ») :
+a. Économie : getAdsEconomics. E-commerce : panier et taux de conversion sont mesurés. Service sans vente en ligne : si verdict = incomplet ou des
+   manquants, DEMANDER à l'utilisateur les chiffres (montant moyen d'une vente, marge, part des contacts qui deviennent devis, part des devis
+   signés, contacts traitables par mois, budget maximal) puis setAdsEconomics avec SES réponses ; ne jamais inventer un chiffre. En retenir
+   cpa_cible, cpc_max, budget_test et la capacité de l'équipe.
+b. Mesure : getAdsConversionTracking. Sans action de conversion de contact active, partir sur MAXIMIZE_CLICKS avec cpc_max (au plus celui de
+   la fiche) et dire à l'utilisateur de créer le suivi ; MAXIMIZE_CONVERSIONS (cpa_cible facultatif) seulement si le suivi est sain.
+c. Zone : findAdsLocations (département, villes) ou rayon autour de l'adresse de la fiche ; presence_seulement=true pour un service local.
+d. Demande : getCampaignKeywordIdeas avec location_id. Un groupe par service ou intention (5 à 20 mots-clés en expression ou exacte), avec la
+   page du site qui y répond (listPages / getPage, ou buildAdsAssetsFromSite quoi=annonce pour un brouillon tiré de la page). En local B2B,
+   les volumes sont faibles (« 10 » = moins de 10) : élargir la zone ou les services plutôt que conclure « pas de demande ».
+e. Annonces : 8 à 15 titres de 30 caractères au plus (sans « ! », sans téléphone, la ville ou le département dans 2 ou 3 titres, les mots-clés
+   du groupe dans 2 titres au moins), 3 ou 4 descriptions de 90 au plus, faits vérifiables seulement (rien d'inventé : certifications, délais,
+   prix viennent du site ou de l'utilisateur). Éléments : 4 liens annexes, accroches, téléphone de la fiche. Mots-clés exclus : emploi,
+   formation, gratuit, salaire… selon le métier. Horaires : ceux de la fiche si les appels comptent.
+f. createCampaignPlan (notes = raisonnement et hypothèses) ; lire controles et estimation (getCampaignPlan) : corriger chaque bloquant avec
+   updateCampaignPlan, puis checkCampaignPlan (vérification par Google, rien n'est créé). verdict volume_insuffisant ou non_viable : le dire
+   et proposer une autre approche plutôt que créer quand même.
+g. Présenter à l'utilisateur : lien du plan, budget, zones, groupes, estimation (clics, contacts par mois, CPA estimé face à la cible) et les
+   avertissements. Sur son accord : createCampaignFromPlan (créée EN PAUSE, rien n'est dépensé, annulable par undoAdsAction), ou
+   submitCampaignPlan s'il veut valider dans GPSEM. La mise en ligne est une décision à part de l'utilisateur : addAdsProposals type
+   reprise_campagne puis decideAdsProposals / applyAdsProposals sur sa demande explicite, ou lui-même dans Google Ads.`],
   ['seo', `Veille et tendances : getTrendingTopics (sujets en hausse pour le site, par cluster) pour proposer des contenus d'actualité ;
 analyzeExternalContent(url) pour juger si une page externe (concurrent, actualité) a du sens pour le site (sujet, angle, mots-clés, pertinence),
 puis addExternalContentIdea (idée seule) ou writeFromExternalContent (lance la rédaction : demander confirmation) ; listWatchedTopics,

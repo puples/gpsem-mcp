@@ -73,7 +73,7 @@ Avec tous les modules, le serveur décrit près de 500 outils à l'assistant au 
 |---|---|---|---|
 | socle (toujours) | compte, sites, historique, rapports, outils GPSEM, connaissances | 40 | 11 500 |
 | `seo` | Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille | 149 | 44 000 |
-| `sea` | publicité : Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok | 92 | 23 500 |
+| `sea` | publicité : Google Ads (dont création de campagnes et fiche économique), Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok | 104 | 29 000 |
 | `local` | SEO local : établissements, fiches, avis, géogrille, publications | 179 | 43 500 |
 | `netlinking` | backlinks, achat MyBack.link, spots de liens | 15 | 4 000 |
 

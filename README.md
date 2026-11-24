@@ -60,7 +60,7 @@ Dans le fichier de configuration MCP du client (`claude_desktop_config.json`, `.
 | `GPSEM_MAX_CHARS` | facultatif | Taille maximale d'une réponse transmise à l'assistant (défaut 60 000 caractères) |
 | `GPSEM_EXPORT_DIR` | facultatif | Dossier où l'assistant peut enregistrer les réponses complètes en fichier (voir *Export en fichier*). Absent : pas d'export en fichier |
 | `GPSEM_EXPORT_MAX_PAGES` | facultatif | Nombre maximal de pages enchaînées par `toutes_les_pages` (défaut 200) |
-| `GPSEM_MODULES` | facultatif | Modules chargés, séparés par des virgules : `seo`, `sea`, `local`, `netlinking` (le socle est toujours chargé). Absent : tous les modules |
+| `GPSEM_MODULES` | facultatif | Modules chargés, séparés par des virgules : `seo`, `sea`, `campagnes`, `local`, `netlinking` (le socle est toujours chargé). Absent : tous les modules |
 | `GPSEM_MODE` | facultatif | `decouverte` : 3 outils seulement (`findTools`, `describeTool`, `callTool`) au lieu de la liste complète. Absent : liste complète |
 
 Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM, sans intermédiaire.
@@ -73,7 +73,8 @@ Avec tous les modules, le serveur décrit près de 500 outils à l'assistant au 
 |---|---|---|---|
 | socle (toujours) | compte, sites, historique, rapports, outils GPSEM, connaissances | 40 | 11 500 |
 | `seo` | Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille | 149 | 44 000 |
-| `sea` | publicité : Google Ads (dont création de campagnes et fiche économique), Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok | 104 | 29 000 |
+| `sea` | conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, changements à valider | 94 | 24 000 |
+| `campagnes` | création de campagnes Google Ads : fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display, lieux, mots-clés, images, création en pause | 26 | 10 300 |
 | `local` | SEO local : établissements, fiches, avis, géogrille, publications | 179 | 43 500 |
 | `netlinking` | backlinks, achat MyBack.link, spots de liens | 15 | 4 000 |
 
@@ -87,10 +88,13 @@ Plusieurs serveurs pour la même entreprise, un par usage :
 {
   "mcpServers": {
     "gpsem-seo": { "command": "npx", "args": ["-y", "github:puples/gpsem-mcp"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token", "GPSEM_MODULES": "seo,netlinking" } },
-    "gpsem-sea": { "command": "npx", "args": ["-y", "github:puples/gpsem-mcp"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token", "GPSEM_MODULES": "sea" } }
+    "gpsem-conseil-ads": { "command": "npx", "args": ["-y", "github:puples/gpsem-mcp"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token", "GPSEM_MODULES": "sea" } },
+    "gpsem-creation-ads": { "command": "npx", "args": ["-y", "github:puples/gpsem-mcp"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token", "GPSEM_MODULES": "campagnes" } }
   }
 }
 ```
+
+Deux agents publicitaires : `sea` pour l'agent de **conseil** (diagnostic, propositions dans la file à valider), `campagnes` pour l'agent qui **construit** les campagnes (fiche économique, plan, vérification Google, création en pause). Les outils utiles aux deux (fiche économique, suivi des conversions, file des changements, journal) sont dans les deux modules ; tout ce que fait l'agent se fait aussi dans GPSEM, à l'écran (pilotage Ads → Campagnes à créer).
 
 `npm run check` (ou `node src/index.js --list-tools`) affiche les outils chargés et le poids de chaque module ; `node src/index.js --consignes` affiche les consignes envoyées.
 

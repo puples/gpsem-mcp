@@ -43,12 +43,13 @@ const METHODES = ['get', 'post', 'put', 'patch', 'delete'];
 const MODULES = {
   socle: { libelle: 'compte, sites, historique, rapports, outils GPSEM, connaissances', tags: ['Auth', 'Compte', 'Entreprise', 'Site', 'Historique', 'Rapports', 'Outils GPSEM', 'Connaissances'] },
   seo: { libelle: 'Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille', tags: ['Analyses', 'Sources de données', 'Audit', 'Contenus du site', 'Screaming Frog', 'Indexation', 'Rédaction', 'Synchronisation CMS', 'Opquast', 'Veille et tendances'] },
-  sea: { libelle: 'publicité : Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok', tags: ['Publicité'] },
+  sea: { libelle: 'conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok, changements à valider', tags: ['Publicité'] },
+  campagnes: { libelle: 'création de campagnes Google Ads (fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display, lieux, mots-clés, images, création en pause)', tags: [] },
   local: { libelle: 'SEO local : établissements, fiches, avis, géogrille, publications', tags: ['SEO local'] },
   netlinking: { libelle: 'backlinks, achat MyBack.link, spots de liens', tags: ['Backlinks', 'Spots de liens'] },
 };
 const ALIAS_MODULES = {
-  ads: 'sea', publicite: 'sea', pub: 'sea', 'seo-local': 'local', seolocal: 'local', liens: 'netlinking', backlinks: 'netlinking', link: 'netlinking',
+  ads: 'sea', publicite: 'sea', pub: 'sea', conseil: 'sea', creation: 'campagnes', campagne: 'campagnes', 'seo-local': 'local', seolocal: 'local', liens: 'netlinking', backlinks: 'netlinking', link: 'netlinking',
 };
 // Outils rangés ailleurs que leur tag : les explorateurs d'intérêts Meta / TikTok (tag Analyses) servent la publicité, les outils transverses le socle
 const MODULE_PAR_CHEMIN = [[/\/(meta|tiktok)\//, 'sea']];
@@ -239,8 +240,17 @@ réel : dry_run=true d'abord quand l'outil l'accepte, accord explicite de l'util
 avoir lu les alertes. Chaque écriture est inscrite au journal (getAdsChangeHistory) et annulable (undoAdsAction, undoMetaAdsAction).
 prepareMetaBoost crée tout EN PAUSE : rien n'est dépensé tant que la personne ne l'active pas dans Meta. Intérêts Meta / TikTok
 (searchMetaInterests, estimateMetaAudience, searchTiktokInterests…) : préparation du ciblage, sans dépense.
-
-CRÉER UNE CAMPAGNE GOOGLE ADS (ex. « une campagne pour une entreprise d'électricité industrielle en Haute-Savoie, uniquement en local ») :
+Rôle de conseil : diagnostiquer, expliquer, proposer des changements dans la file ; juger un CPA ou un ROAS face à la fiche économique
+(getAdsEconomics : cibles et équilibre). Créer une nouvelle campagne relève du module « campagnes » (agent de création) : s'il n'est pas
+chargé, le dire à l'utilisateur plutôt que d'improviser.`],
+  ['campagnes', `CRÉER UNE CAMPAGNE GOOGLE ADS (ex. « une campagne pour une entreprise d'électricité industrielle en Haute-Savoie, uniquement en local ») :
+0. Type (createCampaignPlan type) : SEARCH pour capter une demande exprimée (service local, B2B, urgence) — presque toujours le premier ;
+   PERFORMANCE_MAX pour un e-commerce ou un compte qui a déjà au moins 30 conversions par mois et un suivi sain (sinon il dépense à
+   l'aveugle) ; DEMAND_GEN (Discover, Gmail, YouTube) pour créer de la demande avec de belles images ; YOUTUBE (vidéo, par Demand Gen)
+   seulement si l'entreprise a des vidéos YouTube (adresse ou identifiant ; ne jamais en inventer) ; DISPLAY en remarketing ou notoriété
+   locale. Les règles de chaque type (textes, images, vidéos) : listCampaignPlans → elements_par_type, strategies_par_type.
+   Images (types visuels) : suggestAdImages(url d'une page du site) puis importAdImage(url, format paysage / carre / portrait / logo) ;
+   images du site ou fournies par l'utilisateur seulement ; l'identifiant rendu va dans visuel.images ou marque.logos.
 a. Économie : getAdsEconomics. E-commerce : panier et taux de conversion sont mesurés. Service sans vente en ligne : si verdict = incomplet ou des
    manquants, DEMANDER à l'utilisateur les chiffres (montant moyen d'une vente, marge, part des contacts qui deviennent devis, part des devis
    signés, contacts traitables par mois, budget maximal) puis setAdsEconomics avec SES réponses ; ne jamais inventer un chiffre. En retenir
@@ -420,8 +430,11 @@ function outilsDepuisSpec(spec) {
       if (op['x-mcp-ignorer']) continue;
       const tag = (op.tags || [])[0] || '';
       const parTag = Object.keys(MODULES).find((m) => MODULES[m].tags.includes(tag));
-      const module = (MODULES[op['x-mcp-module']] && op['x-mcp-module']) || MODULE_PAR_OUTIL[op.operationId]
-        || MODULE_PAR_CHEMIN.find(([re]) => re.test(chemin))?.[1] || parTag || 'socle';
+      // x-mcp-module : un module ou une liste (outil utile à plusieurs agents, ex. sea + campagnes)
+      const declares = [].concat(op['x-mcp-module'] || []).filter((m) => MODULES[m]);
+      const modules = declares.length ? declares : [MODULE_PAR_OUTIL[op.operationId]
+        || MODULE_PAR_CHEMIN.find(([re]) => re.test(chemin))?.[1] || parTag || 'socle'];
+      const module = modules.join('+');
       const proprietes = {};
       const requis = [];
       const parametres = [];
@@ -487,8 +500,9 @@ function outilsDepuisSpec(spec) {
         parametres,
         corps,
         module,
+        modules,
         tag,
-        tagInconnu: module === 'socle' && !parTag && !MODULES[op['x-mcp-module']] && !MODULE_PAR_OUTIL[op.operationId],
+        tagInconnu: module === 'socle' && !parTag && !declares.length && !MODULE_PAR_OUTIL[op.operationId],
         description: op.description || '',
       });
     }
@@ -753,7 +767,7 @@ async function outils() {
 
 /** Outils des modules chargés (GPSEM_MODULES). */
 async function outilsActifs() {
-  return (await outils()).filter((o) => MODULES_ACTIFS.has(o.module));
+  return (await outils()).filter((o) => o.modules.some((m) => MODULES_ACTIFS.has(m)));
 }
 
 /** Appel d'un outil GPSEM avec ses arguments, export en fichier compris ; renvoie le résultat MCP. */
@@ -776,7 +790,7 @@ async function lancerOutil(outil, args = {}) {
 async function outilIntrouvable(nom) {
   const ailleurs = (await outils()).find((o) => o.definition.name === nom);
   if (ailleurs) {
-    return `L'outil ${nom} appartient au module « ${ailleurs.module} », non chargé. Demander à l'utilisateur d'ajouter ${ailleurs.module} `
+    return `L'outil ${nom} appartient au module « ${ailleurs.modules.join(' » ou « ')} », non chargé. Demander à l'utilisateur d'ajouter ${ailleurs.modules[0]} `
       + `dans GPSEM_MODULES (configuration du serveur MCP GPSEM, modules chargés : ${[...MODULES_ACTIFS].join(', ')}).`;
   }
   return `Outil inconnu : ${nom}.${DECOUVERTE ? ' Chercher le bon nom avec findTools.' : ''}`;
@@ -894,13 +908,13 @@ async function decouvrir(nom, args = {}) {
   if (nom === 'findTools') {
     const limit = Math.min(50, Math.max(1, Math.floor(Number(args.limit)) || 12));
     let entrees = await index();
-    if (args.module) entrees = entrees.filter((e) => e.outil.module === args.module);
+    if (args.module) entrees = entrees.filter((e) => e.outil.modules.includes(args.module));
     if (args.lecture_seule === true || args.lecture_seule === 'true') entrees = entrees.filter((e) => e.outil.methode === 'get');
     const termes = mots(args.q);
     if (!termes.length) {
       if (!args.module) {
         const parModule = {};
-        for (const e of entrees) parModule[e.outil.module] = (parModule[e.outil.module] || 0) + 1;
+        for (const e of entrees) for (const m of e.outil.modules) parModule[m] = (parModule[m] || 0) + 1;
         return texte({ consigne: 'Donner q (ce que l\'outil doit faire) ou module pour la liste des noms.', outils_par_module: parModule });
       }
       return texte({ module: args.module, total: entrees.length, outils: entrees.map((e) => `${e.outil.definition.name} — ${e.outil.definition.title}`) });
@@ -940,12 +954,12 @@ async function decouvrir(nom, args = {}) {
 async function main() {
   if (process.argv.includes('--list-tools')) {
     const tous = await outils();
-    for (const o of tous.filter((x) => MODULES_ACTIFS.has(x.module))) {
+    for (const o of tous.filter((x) => x.modules.some((m) => MODULES_ACTIFS.has(m)))) {
       console.log(`${o.definition.name.padEnd(32)} ${o.module.padEnd(11)} ${o.methode.toUpperCase().padEnd(6)} ${o.chemin}`);
     }
     console.log('\nModule       outils   ≈ tokens   chargé');
     for (const m of Object.keys(MODULES)) {
-      const liste = tous.filter((o) => o.module === m);
+      const liste = tous.filter((o) => o.modules.includes(m));
       const poids = Math.round(liste.reduce((s, o) => s + JSON.stringify(o.definition).length, 0) / 3.5);
       console.log(`${m.padEnd(12)} ${String(liste.length).padStart(6)} ${String(poids).padStart(10)}   ${MODULES_ACTIFS.has(m) ? 'oui' : 'non'}`);
     }

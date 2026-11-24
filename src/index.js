@@ -251,6 +251,15 @@ chargé, le dire à l'utilisateur plutôt que d'improviser.`],
    locale. Les règles de chaque type (textes, images, vidéos) : listCampaignPlans → elements_par_type, strategies_par_type.
    Images (types visuels) : suggestAdImages(url d'une page du site) puis importAdImage(url, format paysage / carre / portrait / logo) ;
    images du site ou fournies par l'utilisateur seulement ; l'identifiant rendu va dans visuel.images ou marque.logos.
+   Audience (plan.audience) : pour Performance Max c'est un SIGNAL (Google peut aller au-delà), pour Demand Gen / YouTube / Display un
+   CIBLAGE. Le meilleur signal : listes du compte (visiteurs, clients : listAdsAudienceSegments kind=listes), puis audience personnalisée
+   (perso.mots = ce que les clients tapent, perso.urls = sites qu'ils visitent : concurrents, fournisseurs), puis centres d'intérêt
+   (noms en anglais : chercher q=electric, construction…). Âge et sexe seulement si l'utilisateur le dit (B2B : jamais deviner).
+   Performance Max : themes par groupe (thèmes de recherche, ce que tapent les clients, 25 au plus).
+   Shopping (e-commerce) : listMerchantAccounts ; plan.shopping.merchant_id parmi les comptes reliés, feed_label (souvent FR).
+   SHOPPING standard = enchère au clic (MANUAL_CPC ou MAXIMIZE_CLICKS, cpc_max) sur tous les produits ; PERFORMANCE_MAX + shopping
+   = fiches produits en plus des annonces (MAXIMIZE_CONVERSION_VALUE avec un suivi des ventes) ; un groupe sans textes ni images y
+   diffuse seulement les fiches produits. Merchant introuvable chez Google = liaison à accepter dans Google Ads (le dire).
 a. Économie : getAdsEconomics. E-commerce : panier et taux de conversion sont mesurés. Service sans vente en ligne : si verdict = incomplet ou des
    manquants, DEMANDER à l'utilisateur les chiffres (montant moyen d'une vente, marge, part des contacts qui deviennent devis, part des devis
    signés, contacts traitables par mois, budget maximal) puis setAdsEconomics avec SES réponses ; ne jamais inventer un chiffre. En retenir

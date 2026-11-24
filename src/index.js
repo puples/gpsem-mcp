@@ -15,7 +15,7 @@
  *                                  (arguments enregistrer_sous et toutes_les_pages) ; absent : pas d'export en fichier
  *   GPSEM_EXPORT_MAX_PAGES (facultatif) nombre maximal de pages enchaînées par toutes_les_pages (défaut 200)
  *   GPSEM_MODULES    (facultatif)  modules chargés : seo, sea, campagnes, local, netlinking (socle toujours) ; absent = tous
- *   GPSEM_PROFIL     (facultatif)  seo ou ads : serveur nommé gpsem-seo / gpsem-ads (aussi par les commandes du même nom)
+ *   GPSEM_PROFIL     (facultatif)  seo, ads ou netlinking : serveur nommé gpsem-seo / gpsem-ads / gpsem-netlinking (aussi par les commandes du même nom)
  *   GPSEM_MODE       (facultatif)  decouverte = 3 outils (findTools, describeTool, callTool) au lieu de la liste complète
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -74,10 +74,11 @@ function lireModules(brut) {
  * même séparation côté serveur.
  */
 const PROFILS = {
-  seo: { nom: 'gpsem-seo', libelle: 'GPSEM SEO', permis: ['seo', 'netlinking', 'local'], defaut: ['seo', 'netlinking'] },
-  ads: { nom: 'gpsem-ads', libelle: 'GPSEM Ads', permis: ['sea', 'campagnes'], defaut: ['sea', 'campagnes'] },
+  seo: { nom: 'gpsem-seo', libelle: 'GPSEM SEO', domaine: 'SEO (et SEO local)', permis: ['seo', 'local'], defaut: ['seo'] },
+  ads: { nom: 'gpsem-ads', libelle: 'GPSEM Ads', domaine: 'publicité (conseil et création de campagnes)', permis: ['sea', 'campagnes'], defaut: ['sea', 'campagnes'] },
+  netlinking: { nom: 'gpsem-netlinking', libelle: 'GPSEM Netlinking', domaine: 'netlinking (spots, achat de liens, liens suivis)', permis: ['netlinking'], defaut: ['netlinking'] },
 };
-const PROFIL = PROFILS[String(process.env.GPSEM_PROFIL || '').trim().toLowerCase()] || null;
+const PROFIL = PROFILS[{ liens: 'netlinking' }[String(process.env.GPSEM_PROFIL || '').trim().toLowerCase()] || String(process.env.GPSEM_PROFIL || '').trim().toLowerCase()] || null;
 function modulesDuProfil() {
   if (!PROFIL) return lireModules(process.env.GPSEM_MODULES);
   const demandes = process.env.GPSEM_MODULES ? lireModules(process.env.GPSEM_MODULES) : new Set(['socle', ...PROFIL.defaut]);
@@ -174,7 +175,19 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    nouveau test quelques jours plus tard. Tester les pages utiles, pas tout le site à répétition (quota Search Console de 2 000
    inspections par jour et par site) ; une page non indexée qui reste non indexée malgré une demande est un problème de qualité ou
    de maillage, pas d'envoi : le dire et chercher la cause (contenu, liens reçus, doublon, canonique).`],
-  ['netlinking', `Liens obtenus soi-même (ninjalinking, JAMAIS d'achat) : getLinkSpotSettings (cibles du site : site, entreprise, personne ; pays ;
+  ['netlinking', `AGENT NETLINKING — obtenir des liens utiles, au bon rythme, et prouver leur effet :
+a. Choisir les pages à renforcer avant les liens : querySearchConsole (dimensions query + page : requêtes en positions 8 à 20 avec des
+   impressions = pages proches du haut), getLostPages (pages qui ont perdu leurs classements), getKeywordGainsLosses, getPage /
+   getPageLinksReceived (liens déjà reçus, internes compris). Peu de pages, les plus rentables ; la page d'accueil n'est pas toujours la cible.
+b. Liens gratuits d'abord (spots, ci-dessous) ; achat (MyBack.link) seulement si le site l'autorise, après accord explicite de l'utilisateur.
+c. Ancres variées et naturelles (marque, adresse, expression large), jamais la même ancre exacte en boucle ; liens de sites du même pays
+   et du même sujet de préférence.
+d. Suivre chaque lien obtenu ou acheté : addMonitoredLinks (links [{source_url = page qui porte le lien, target_url = page du site,
+   anchor, price, supplier}], contrôlé tout de suite) ; checkMonitoredLinks puis listMonitoredLinks pour les liens perdus ou passés en
+   nofollow. Tracer chaque lien externe obtenu dans l'historique (addSiteHistorique, code générique 300-09-001 sur la page cible, date de mise
+   en ligne, details : source, ancre, type gratuit / acheté) pour mesurer l'effet ; juger sur 4 à 8 semaines, après le passage de Google.
+
+Liens obtenus soi-même (ninjalinking, JAMAIS d'achat) : getLinkSpotSettings (cibles du site : site, entreprise, personne ; pays ;
    langues ; inscriptions par semaine au plus ; black hat autorisé ou non) ; listLinkPlansToDo (liens planifiés à réaliser) ;
    searchLinkSpots (planification=id pour un lien planifié, sinon type / cible / portée locale, nationale ou internationale / pays /
    gratuit / dofollow) ; getLinkSpot pour la procédure de LA cible choisie (sur un même site, l'inscription d'une entreprise et celle
@@ -392,8 +405,9 @@ function consignes() {
   const parties = CONSIGNES.filter(([m]) => MODULES_ACTIFS.has(m)).map(([, t]) => t.trim());
   let entete = `${PROFIL ? `Serveur ${PROFIL.libelle}. ` : ''}Modules chargés : ${charges.join(', ')}.`;
   if (PROFIL) {
-    entete += ` Une demande qui relève de l'autre profil (${PROFIL.nom === 'gpsem-seo' ? 'publicité : serveur gpsem-ads' : 'SEO : serveur gpsem-seo'}) se traite avec l'autre serveur GPSEM :`
-      + ` le dire à l'utilisateur. Une réponse 403 scope_denied signifie que le jeton est limité à un autre périmètre.`;
+    const autres = Object.values(PROFILS).filter((x) => x !== PROFIL).map((x) => `${x.domaine} : serveur ${x.nom}`).join(' ; ');
+    entete += ` Ce serveur traite le ${PROFIL.domaine}. Une demande d'un autre domaine (${autres}) se traite avec l'autre serveur GPSEM :`
+      + ` le dire à l'utilisateur (le même jeton sert à tous les serveurs). Une réponse 403 scope_denied signifie que le jeton est limité à un autre périmètre.`;
   }
   if (absents.length) {
     entete += ` Non chargés : ${absents.map((m) => `${m} (${MODULES[m].libelle})`).join(' ; ')}. Pour une demande qui en relève, dire à l'utilisateur`

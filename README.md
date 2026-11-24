@@ -50,30 +50,33 @@ Dans le fichier de configuration MCP du client (`claude_desktop_config.json`, `.
 }
 ```
 
-### Deux serveurs : GPSEM SEO et GPSEM Ads
+### Trois serveurs : GPSEM SEO, GPSEM Ads, GPSEM Netlinking
 
-Le paquet contient deux serveurs nommés, à installer séparément, de préférence chacun avec **son jeton limité au même périmètre** (fiche entreprise → *API GPSEM* → *Périmètre* : SEO seulement / Publicité seulement). Le jeton fait la séparation côté GPSEM : un jeton SEO reçoit `403 scope_denied` sur une opération publicitaire, même appelée directement.
+Le paquet contient trois serveurs nommés, un par agent. **Le même jeton sert aux trois** (jeton « Tout GPSEM »). Pour cloisonner un agent, un jeton peut aussi être limité à un domaine (fiche entreprise → *API GPSEM* → *Périmètre*) : GPSEM refuse alors toute opération hors domaine (`403 scope_denied`), même appelée directement.
 
-| Serveur | Commande | Modules (socle toujours) |
-|---|---|---|
-| **gpsem-seo** | `npx -y -p github:puples/gpsem-mcp gpsem-seo` | `seo`, `netlinking` ; `local` sur demande (`GPSEM_MODULES=seo,netlinking,local`) |
-| **gpsem-ads** | `npx -y -p github:puples/gpsem-mcp gpsem-ads` | `sea` (conseil), `campagnes` (création) ; un seul des deux avec `GPSEM_MODULES` |
+| Serveur | Commande | Modules (socle toujours) | Outils |
+|---|---|---|---|
+| **gpsem-seo** | `npx -y -p github:puples/gpsem-mcp gpsem-seo` | `seo` ; `local` sur demande (`GPSEM_MODULES=seo,local`) | 189 |
+| **gpsem-ads** | `npx -y -p github:puples/gpsem-mcp gpsem-ads` | `sea` (conseil), `campagnes` (création) ; un seul des deux avec `GPSEM_MODULES` | 150 |
+| **gpsem-netlinking** | `npx -y -p github:puples/gpsem-mcp gpsem-netlinking` | `netlinking` (spots, achat MyBack.link, liens suivis) + lectures Search Console pour choisir les pages | 62 |
 
 ```bash
-claude mcp add gpsem-seo -e GPSEM_API_TOKEN=gpsem_jeton_seo -- npx -y -p github:puples/gpsem-mcp gpsem-seo
-claude mcp add gpsem-ads -e GPSEM_API_TOKEN=gpsem_jeton_ads -- npx -y -p github:puples/gpsem-mcp gpsem-ads
+claude mcp add gpsem-seo -e GPSEM_API_TOKEN=gpsem_votre_token -- npx -y -p github:puples/gpsem-mcp gpsem-seo
+claude mcp add gpsem-ads -e GPSEM_API_TOKEN=gpsem_votre_token -- npx -y -p github:puples/gpsem-mcp gpsem-ads
+claude mcp add gpsem-netlinking -e GPSEM_API_TOKEN=gpsem_votre_token -- npx -y -p github:puples/gpsem-mcp gpsem-netlinking
 ```
 
 ```json
 {
   "mcpServers": {
-    "gpsem-seo": { "command": "npx", "args": ["-y", "-p", "github:puples/gpsem-mcp", "gpsem-seo"], "env": { "GPSEM_API_TOKEN": "gpsem_jeton_seo" } },
-    "gpsem-ads": { "command": "npx", "args": ["-y", "-p", "github:puples/gpsem-mcp", "gpsem-ads"], "env": { "GPSEM_API_TOKEN": "gpsem_jeton_ads" } }
+    "gpsem-seo": { "command": "npx", "args": ["-y", "-p", "github:puples/gpsem-mcp", "gpsem-seo"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token" } },
+    "gpsem-ads": { "command": "npx", "args": ["-y", "-p", "github:puples/gpsem-mcp", "gpsem-ads"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token" } },
+    "gpsem-netlinking": { "command": "npx", "args": ["-y", "-p", "github:puples/gpsem-mcp", "gpsem-netlinking"], "env": { "GPSEM_API_TOKEN": "gpsem_votre_token" } }
   }
 }
 ```
 
-Dans un serveur nommé, `GPSEM_MODULES` ne peut que réduire la liste : un module de l'autre serveur est ignoré (avec un message). `GPSEM_PROFIL=seo` ou `ads` fait la même chose avec la commande `gpsem-mcp` d'origine. Sans profil, `gpsem-mcp` reste le serveur complet.
+Dans un serveur nommé, `GPSEM_MODULES` ne peut que réduire la liste : un module d'un autre serveur est ignoré (avec un message). `GPSEM_PROFIL=seo`, `ads` ou `netlinking` fait la même chose avec la commande `gpsem-mcp` d'origine ; sans profil, `gpsem-mcp` reste le serveur complet. Le **mode découverte** (`GPSEM_MODE=decouverte`) marche avec chaque serveur : 3 outils, et `findTools` ne cherche que dans le domaine du serveur.
 
 ### Variables d'environnement
 
@@ -86,7 +89,7 @@ Dans un serveur nommé, `GPSEM_MODULES` ne peut que réduire la liste : un modul
 | `GPSEM_EXPORT_DIR` | facultatif | Dossier où l'assistant peut enregistrer les réponses complètes en fichier (voir *Export en fichier*). Absent : pas d'export en fichier |
 | `GPSEM_EXPORT_MAX_PAGES` | facultatif | Nombre maximal de pages enchaînées par `toutes_les_pages` (défaut 200) |
 | `GPSEM_MODULES` | facultatif | Modules chargés, séparés par des virgules : `seo`, `sea`, `campagnes`, `local`, `netlinking` (le socle est toujours chargé). Absent : tous les modules |
-| `GPSEM_PROFIL` | facultatif | `seo` ou `ads` : borne les modules comme les serveurs `gpsem-seo` / `gpsem-ads` |
+| `GPSEM_PROFIL` | facultatif | `seo`, `ads` ou `netlinking` : borne les modules comme les serveurs nommés |
 | `GPSEM_MODE` | facultatif | `decouverte` : 3 outils seulement (`findTools`, `describeTool`, `callTool`) au lieu de la liste complète. Absent : liste complète |
 
 Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM, sans intermédiaire.

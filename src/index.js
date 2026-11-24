@@ -14,7 +14,8 @@
  *   GPSEM_EXPORT_DIR (facultatif)  dossier où les outils de lecture peuvent enregistrer leur réponse complète
  *                                  (arguments enregistrer_sous et toutes_les_pages) ; absent : pas d'export en fichier
  *   GPSEM_EXPORT_MAX_PAGES (facultatif) nombre maximal de pages enchaînées par toutes_les_pages (défaut 200)
- *   GPSEM_MODULES    (facultatif)  modules chargés : seo, sea, local, netlinking (socle toujours) ; absent = tous
+ *   GPSEM_MODULES    (facultatif)  modules chargés : seo, sea, campagnes, local, netlinking (socle toujours) ; absent = tous
+ *   GPSEM_PROFIL     (facultatif)  seo ou ads : serveur nommé gpsem-seo / gpsem-ads (aussi par les commandes du même nom)
  *   GPSEM_MODE       (facultatif)  decouverte = 3 outils (findTools, describeTool, callTool) au lieu de la liste complète
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -67,7 +68,29 @@ function lireModules(brut) {
   }
   return actifs;
 }
-const MODULES_ACTIFS = lireModules(process.env.GPSEM_MODULES);
+/**
+ * Profils : serveurs nommés « gpsem-seo » et « gpsem-ads » (bin du paquet, ou GPSEM_PROFIL). Un profil borne les
+ * modules : GPSEM_MODULES ne peut que réduire la liste (le reste est ignoré). Le jeton à périmètre de l'API fait la
+ * même séparation côté serveur.
+ */
+const PROFILS = {
+  seo: { nom: 'gpsem-seo', libelle: 'GPSEM SEO', permis: ['seo', 'netlinking', 'local'], defaut: ['seo', 'netlinking'] },
+  ads: { nom: 'gpsem-ads', libelle: 'GPSEM Ads', permis: ['sea', 'campagnes'], defaut: ['sea', 'campagnes'] },
+};
+const PROFIL = PROFILS[String(process.env.GPSEM_PROFIL || '').trim().toLowerCase()] || null;
+function modulesDuProfil() {
+  if (!PROFIL) return lireModules(process.env.GPSEM_MODULES);
+  const demandes = process.env.GPSEM_MODULES ? lireModules(process.env.GPSEM_MODULES) : new Set(['socle', ...PROFIL.defaut]);
+  const actifs = new Set(['socle']);
+  for (const m of demandes) {
+    if (m === 'socle') continue;
+    if (PROFIL.permis.includes(m)) actifs.add(m);
+    else console.error(`${PROFIL.nom} : module « ${m} » ignoré (hors du profil ; modules possibles : ${PROFIL.permis.join(', ')}).`);
+  }
+  if (actifs.size === 1) PROFIL.defaut.forEach((m) => actifs.add(m));
+  return actifs;
+}
+const MODULES_ACTIFS = modulesDuProfil();
 const DECOUVERTE = ['decouverte', 'découverte', 'discovery'].includes(String(process.env.GPSEM_MODE || '').trim().toLowerCase());
 
 const CONSIGNES = [
@@ -365,9 +388,13 @@ Les traitements longs renvoient un task_id à suivre avec getTask, ou un statut 
 /** Consignes envoyées au client : sections des modules chargés, et l'état des modules pour que l'assistant sache quoi demander. */
 function consignes() {
   const charges = Object.keys(MODULES).filter((m) => MODULES_ACTIFS.has(m));
-  const absents = Object.keys(MODULES).filter((m) => !MODULES_ACTIFS.has(m));
+  const absents = Object.keys(MODULES).filter((m) => !MODULES_ACTIFS.has(m) && (!PROFIL || PROFIL.permis.includes(m)));
   const parties = CONSIGNES.filter(([m]) => MODULES_ACTIFS.has(m)).map(([, t]) => t.trim());
-  let entete = `Modules chargés : ${charges.join(', ')}.`;
+  let entete = `${PROFIL ? `Serveur ${PROFIL.libelle}. ` : ''}Modules chargés : ${charges.join(', ')}.`;
+  if (PROFIL) {
+    entete += ` Une demande qui relève de l'autre profil (${PROFIL.nom === 'gpsem-seo' ? 'publicité : serveur gpsem-ads' : 'SEO : serveur gpsem-seo'}) se traite avec l'autre serveur GPSEM :`
+      + ` le dire à l'utilisateur. Une réponse 403 scope_denied signifie que le jeton est limité à un autre périmètre.`;
+  }
   if (absents.length) {
     entete += ` Non chargés : ${absents.map((m) => `${m} (${MODULES[m].libelle})`).join(' ; ')}. Pour une demande qui en relève, dire à l'utilisateur`
       + ` d'ajouter le module dans la variable GPSEM_MODULES de la configuration du serveur MCP GPSEM (ex. GPSEM_MODULES=${[...charges.filter((m) => m !== 'socle'), absents[0]].join(',')}).`;
@@ -988,7 +1015,7 @@ async function main() {
     process.exit(1);
   }
 
-  const server = new Server({ name: 'gpsem', version: VERSION },
+  const server = new Server({ name: PROFIL ? PROFIL.nom : 'gpsem', version: VERSION },
     { capabilities: { tools: {}, resources: {} }, instructions: consignes() + (await resumeRapports()) });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({

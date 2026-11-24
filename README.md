@@ -50,6 +50,31 @@ Dans le fichier de configuration MCP du client (`claude_desktop_config.json`, `.
 }
 ```
 
+### Deux serveurs : GPSEM SEO et GPSEM Ads
+
+Le paquet contient deux serveurs nommés, à installer séparément, de préférence chacun avec **son jeton limité au même périmètre** (fiche entreprise → *API GPSEM* → *Périmètre* : SEO seulement / Publicité seulement). Le jeton fait la séparation côté GPSEM : un jeton SEO reçoit `403 scope_denied` sur une opération publicitaire, même appelée directement.
+
+| Serveur | Commande | Modules (socle toujours) |
+|---|---|---|
+| **gpsem-seo** | `npx -y -p github:puples/gpsem-mcp gpsem-seo` | `seo`, `netlinking` ; `local` sur demande (`GPSEM_MODULES=seo,netlinking,local`) |
+| **gpsem-ads** | `npx -y -p github:puples/gpsem-mcp gpsem-ads` | `sea` (conseil), `campagnes` (création) ; un seul des deux avec `GPSEM_MODULES` |
+
+```bash
+claude mcp add gpsem-seo -e GPSEM_API_TOKEN=gpsem_jeton_seo -- npx -y -p github:puples/gpsem-mcp gpsem-seo
+claude mcp add gpsem-ads -e GPSEM_API_TOKEN=gpsem_jeton_ads -- npx -y -p github:puples/gpsem-mcp gpsem-ads
+```
+
+```json
+{
+  "mcpServers": {
+    "gpsem-seo": { "command": "npx", "args": ["-y", "-p", "github:puples/gpsem-mcp", "gpsem-seo"], "env": { "GPSEM_API_TOKEN": "gpsem_jeton_seo" } },
+    "gpsem-ads": { "command": "npx", "args": ["-y", "-p", "github:puples/gpsem-mcp", "gpsem-ads"], "env": { "GPSEM_API_TOKEN": "gpsem_jeton_ads" } }
+  }
+}
+```
+
+Dans un serveur nommé, `GPSEM_MODULES` ne peut que réduire la liste : un module de l'autre serveur est ignoré (avec un message). `GPSEM_PROFIL=seo` ou `ads` fait la même chose avec la commande `gpsem-mcp` d'origine. Sans profil, `gpsem-mcp` reste le serveur complet.
+
 ### Variables d'environnement
 
 | Variable | | Rôle |
@@ -61,6 +86,7 @@ Dans le fichier de configuration MCP du client (`claude_desktop_config.json`, `.
 | `GPSEM_EXPORT_DIR` | facultatif | Dossier où l'assistant peut enregistrer les réponses complètes en fichier (voir *Export en fichier*). Absent : pas d'export en fichier |
 | `GPSEM_EXPORT_MAX_PAGES` | facultatif | Nombre maximal de pages enchaînées par `toutes_les_pages` (défaut 200) |
 | `GPSEM_MODULES` | facultatif | Modules chargés, séparés par des virgules : `seo`, `sea`, `campagnes`, `local`, `netlinking` (le socle est toujours chargé). Absent : tous les modules |
+| `GPSEM_PROFIL` | facultatif | `seo` ou `ads` : borne les modules comme les serveurs `gpsem-seo` / `gpsem-ads` |
 | `GPSEM_MODE` | facultatif | `decouverte` : 3 outils seulement (`findTools`, `describeTool`, `callTool`) au lieu de la liste complète. Absent : liste complète |
 
 Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM, sans intermédiaire.
@@ -71,8 +97,8 @@ Avec tous les modules, le serveur décrit près de 500 outils à l'assistant au 
 
 | Module | Contenu | Outils | ≈ tokens |
 |---|---|---|---|
-| socle (toujours) | compte, sites, historique, rapports, outils GPSEM, connaissances | 40 | 11 500 |
-| `seo` | Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille | 149 | 44 000 |
+| socle (toujours) | compte, sites, pages, historique, rapports, outils GPSEM, connaissances | 42 | 12 000 |
+| `seo` | Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille | 147 | 43 000 |
 | `sea` | conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, changements à valider | 94 | 24 000 |
 | `campagnes` | création de campagnes Google Ads : fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display / Shopping, audiences, lieux, mots-clés, images, création en pause | 28 | 11 500 |
 | `local` | SEO local : établissements, fiches, avis, géogrille, publications | 179 | 43 500 |
@@ -82,7 +108,7 @@ Les consignes envoyées à l'assistant ne contiennent que celles des modules cha
 
 Le **mode découverte** (`GPSEM_MODE=decouverte`) n'envoie que 3 outils, quel que soit le nombre de modules : l'assistant cherche l'outil voulu (`findTools`, en français ou en anglais), lit son schéma si besoin (`describeTool`) et l'appelle (`callTool`). Il coûte un aller-retour de plus par outil, mais convient aux clients qui limitent le nombre d'outils (128 pour les modèles OpenAI, moins dans certains éditeurs) ou à qui veut tous les modules sans tout charger.
 
-Plusieurs serveurs pour la même entreprise, un par usage :
+Plusieurs serveurs pour la même entreprise avec la commande d'origine (les serveurs nommés ci-dessus sont plus simples) :
 
 ```json
 {

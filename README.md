@@ -11,7 +11,7 @@ Serveur [MCP](https://modelcontextprotocol.io) de [GPSEM](https://app.gpsem.io) 
 - **Outils GPSEM** : 57 tableaux et croisements (opportunités, concurrence Semrush, saisonnalité, motifs des non indexées, activité de Google, liens internes datés…) des écrans et de la boîte à outils, groupés par thème (indexation, contenus et pruning, mots-clés et Search Console, maillage, netlinking, analytics et conversions, planning éditorial).
 - **Tableaux croisés e-commerce** : une cinquantaine de tableaux par fiche produit qui croisent catalogue, Search Console, Google Analytics 4, Merchant Center, crawl et tests d'indexation (position × ventes, ruptures qui coûtent, requêtes d'achat, fiches jumelles, liens internes × demande, qualité du flux, prix du marché, saisonnalité…). Modules `ecommerce_*` de `listReportModules`, lus avec `getReportData` (`modules=…`, et `settings` pour choisir la vue et le nombre de lignes) ; chaque ligne porte l'adresse de la page.
 - **Recherche de différences** : pour quelques adresses (du site ou d'un concurrent), ce que la Wayback Machine en a gardé sur plusieurs périodes est lu et comparé — contenu refait, balise titre et meta description réécrites, fichiers CSS et JS, CMS, thème et outils installés ou retirés — avec la date des gros changements, cherchée en coupant la période en deux, et sa place par rapport aux mises à jour Google (pendant un déploiement, avant ou après, avec l'écart en jours). Les mises à jour Google seules : `listGoogleUpdates`.
-- **Audit du tracking** (dans le socle, donc pour les agents SEO et Ads) : ce que les tags du site envoient vraiment, mesuré dans un navigateur — une visite en refusant dans le bandeau de cookies, une en acceptant. Outils partis avant le choix ou après un refus, Consent Mode v2 décodé (gcs, gcd), TCF, conteneur Google Tag Manager publié (tags, déclencheurs, consentement exigé, code masqué) et réglages GA4 publiés (événements clés, mesure améliorée), événements GA4 / Google Ads / Meta / autres pixels, e-commerce, cookies, poids des tags, actions de conversion du compte Google Ads introuvables, anomalies notées sur 100, plan de marquage et conteneur GTM à importer, comparaison de deux audits, surveillance quotidienne (`startTrackingAudit`, `getTrackingAudit`, `getTrackingContainer`, `compareTrackingAudits`, `getTrackingPlan`…). Fonctionne aussi sur le site d'un concurrent.
+- **Audit du tracking** (serveur dédié **gpsem-tracking**) : ce que les tags du site envoient vraiment, mesuré dans un navigateur — une visite en refusant dans le bandeau de cookies, une en acceptant. Outils partis avant le choix ou après un refus, Consent Mode v2 décodé (gcs, gcd), TCF, conteneur Google Tag Manager publié (tags, déclencheurs, consentement exigé, code masqué) et réglages GA4 publiés (événements clés, mesure améliorée), événements GA4 / Google Ads / Meta / autres pixels, e-commerce, cookies, poids des tags, actions de conversion du compte Google Ads introuvables, anomalies notées sur 100, plan de marquage et conteneur GTM à importer, parcours d'achat simulé (fiche → panier → début de commande, jamais jusqu'au paiement) avec contrôle des événements à chaque étape, coût de chaque tag en vitesse (mesures appariées avec / sans), comparaison de deux audits, surveillance quotidienne (`startTrackingAudit`, `getTrackingAudit`, `getTrackingContainer`, `compareTrackingAudits`, `getTrackingPlan`…). Fonctionne aussi sur le site d'un concurrent.
 - **Screaming Frog** : lancer un crawl, problèmes par catégorie, plan d'action, rapport par problème (avec la documentation Google), problèmes d'une page, correction automatique des liens vers des 404, des redirections 301 et des boucles de redirection (une à la fois par site, avec son état).
 - **Audit Opquast** : créer un audit, parcourir les 240 règles par catégorie, y répondre (conforme / non conforme) avec un commentaire argumenté à partir du crawl et des pages, marquer les catégories hors périmètre, rédiger la synthèse de chaque catégorie.
 - **Analyses** : suggestions de maillage interne, NavRank / ClickRank, mots-clés et analyse sémantique, cartographie sémantique du site.
@@ -53,13 +53,14 @@ Dans le fichier de configuration MCP du client (`claude_desktop_config.json`, `.
 
 ### Trois serveurs : GPSEM SEO, GPSEM Ads, GPSEM Netlinking
 
-Le paquet contient trois serveurs nommés, un par agent. **Le même jeton sert aux trois** (jeton « Tout GPSEM »). Pour cloisonner un agent, un jeton peut aussi être limité à un domaine (fiche entreprise → *API GPSEM* → *Périmètre*) : GPSEM refuse alors toute opération hors domaine (`403 scope_denied`), même appelée directement.
+Le paquet contient quatre serveurs nommés, un par agent. **Le même jeton sert aux quatre** (jeton « Tout GPSEM »). Pour cloisonner un agent, un jeton peut aussi être limité à un domaine (fiche entreprise → *API GPSEM* → *Périmètre*) : GPSEM refuse alors toute opération hors domaine (`403 scope_denied`), même appelée directement.
 
 | Serveur | Commande | Modules (socle toujours) | Outils |
 |---|---|---|---|
-| **gpsem-seo** | `npx -y -p github:puples/gpsem-mcp gpsem-seo` | `seo` ; `local` sur demande (`GPSEM_MODULES=seo,local`) | 195 |
-| **gpsem-ads** | `npx -y -p github:puples/gpsem-mcp gpsem-ads` | `sea` (conseil), `campagnes` (création) ; un seul des deux avec `GPSEM_MODULES` | 151 |
-| **gpsem-netlinking** | `npx -y -p github:puples/gpsem-mcp gpsem-netlinking` | `netlinking` (spots, achat MyBack.link, liens suivis) + lectures Search Console pour choisir les pages | 69 |
+| **gpsem-seo** | `npx -y -p github:puples/gpsem-mcp gpsem-seo` | `seo` ; `local` sur demande (`GPSEM_MODULES=seo,local`) | 189 |
+| **gpsem-ads** | `npx -y -p github:puples/gpsem-mcp gpsem-ads` | `sea` (conseil), `campagnes` (création) ; un seul des deux avec `GPSEM_MODULES` | 170 |
+| **gpsem-tracking** | `npx -y -p github:puples/gpsem-mcp gpsem-tracking` | `tracking` (audit des tags, du consentement et des conversions mesurées) + lectures utiles : santé des conversions Google Ads, régies face à GA4, GA4 libre, attribution | 58 |
+| **gpsem-netlinking** | `npx -y -p github:puples/gpsem-mcp gpsem-netlinking` | `netlinking` (spots, achat MyBack.link, liens suivis) + lectures Search Console pour choisir les pages | 62 |
 
 ```bash
 claude mcp add gpsem-seo -e GPSEM_API_TOKEN=gpsem_votre_token -- npx -y -p github:puples/gpsem-mcp gpsem-seo
@@ -101,12 +102,13 @@ Avec tous les modules, le serveur décrit près de 500 outils à l'assistant au 
 
 | Module | Contenu | Outils | ≈ tokens |
 |---|---|---|---|
-| socle (toujours) | compte, sites, pages, historique, rapports, outils GPSEM, connaissances, audit du tracking | 54 | 16 000 |
+| socle (toujours) | compte, sites, pages, historique, rapports, outils GPSEM, connaissances | 42 | 12 000 |
 | `seo` | Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille | 147 | 43 000 |
 | `sea` | conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, changements à valider | 94 | 24 000 |
 | `campagnes` | création de campagnes Google Ads : fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display / Shopping, audiences, lieux, mots-clés, images, création en pause | 28 | 11 500 |
 | `local` | SEO local : établissements, fiches, avis, géogrille, publications | 179 | 43 500 |
 | `netlinking` | backlinks, achat MyBack.link, spots de liens | 15 | 4 000 |
+| `tracking` | audit du tracking : tags, consentement, GTM publié, conversions, parcours d'achat, coût des tags, plan de marquage, surveillance | 12 | 5 000 |
 
 Les consignes envoyées à l'assistant ne contiennent que celles des modules chargés. Un outil d'un module absent n'est pas appelable ; l'assistant indique alors quel module ajouter.
 

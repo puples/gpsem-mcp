@@ -14,8 +14,9 @@
  *   GPSEM_EXPORT_DIR (facultatif)  dossier où les outils de lecture peuvent enregistrer leur réponse complète
  *                                  (arguments enregistrer_sous et toutes_les_pages) ; absent : pas d'export en fichier
  *   GPSEM_EXPORT_MAX_PAGES (facultatif) nombre maximal de pages enchaînées par toutes_les_pages (défaut 200)
- *   GPSEM_MODULES    (facultatif)  modules chargés : seo, sea, campagnes, local, netlinking (socle toujours) ; absent = tous
- *   GPSEM_PROFIL     (facultatif)  seo, ads ou netlinking : serveur nommé gpsem-seo / gpsem-ads / gpsem-netlinking (aussi par les commandes du même nom)
+ *   GPSEM_MODULES    (facultatif)  modules chargés : seo, sea, campagnes, local, netlinking, tracking (socle toujours) ; absent = tous
+ *   GPSEM_PROFIL     (facultatif)  seo, ads, netlinking ou tracking : serveur nommé gpsem-seo / gpsem-ads / gpsem-netlinking / gpsem-tracking
+ *                                  (aussi par les commandes du même nom)
  *   GPSEM_MODE       (facultatif)  decouverte = 3 outils (findTools, describeTool, callTool) au lieu de la liste complète
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -42,15 +43,16 @@ const METHODES = ['get', 'post', 'put', 'patch', 'delete'];
  * Une opération peut fixer son module elle-même avec x-mcp-module ; un tag inconnu tombe dans le socle (l'outil n'est jamais perdu).
  */
 const MODULES = {
-  socle: { libelle: 'compte, sites, historique, rapports, outils GPSEM, connaissances, audit du tracking', tags: ['Auth', 'Compte', 'Entreprise', 'Site', 'Historique', 'Rapports', 'Outils GPSEM', 'Connaissances', 'Tracking'] },
+  socle: { libelle: 'compte, sites, historique, rapports, outils GPSEM, connaissances', tags: ['Auth', 'Compte', 'Entreprise', 'Site', 'Historique', 'Rapports', 'Outils GPSEM', 'Connaissances'] },
   seo: { libelle: 'Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille', tags: ['Analyses', 'Sources de données', 'Audit', 'Contenus du site', 'Screaming Frog', 'Indexation', 'Rédaction', 'Synchronisation CMS', 'Opquast', 'Veille et tendances'] },
   sea: { libelle: 'conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok, changements à valider', tags: ['Publicité'] },
   campagnes: { libelle: 'création de campagnes Google Ads (fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display, lieux, mots-clés, images, création en pause)', tags: [] },
   local: { libelle: 'SEO local : établissements, fiches, avis, géogrille, publications', tags: ['SEO local'] },
   netlinking: { libelle: 'backlinks, achat MyBack.link, spots de liens', tags: ['Backlinks', 'Spots de liens'] },
+  tracking: { libelle: 'audit du tracking : tags mesurés dans un navigateur, consentement et Consent Mode, conteneur GTM publié, conversions, plan de marquage, surveillance', tags: ['Tracking'] },
 };
 const ALIAS_MODULES = {
-  ads: 'sea', publicite: 'sea', pub: 'sea', conseil: 'sea', creation: 'campagnes', campagne: 'campagnes', 'seo-local': 'local', seolocal: 'local', liens: 'netlinking', backlinks: 'netlinking', link: 'netlinking',
+  ads: 'sea', publicite: 'sea', pub: 'sea', conseil: 'sea', creation: 'campagnes', campagne: 'campagnes', 'seo-local': 'local', seolocal: 'local', liens: 'netlinking', backlinks: 'netlinking', link: 'netlinking', tags: 'tracking', tag: 'tracking', consentement: 'tracking', gtm: 'tracking',
 };
 // Outils rangés ailleurs que leur tag : les explorateurs d'intérêts Meta / TikTok (tag Analyses) servent la publicité, les outils transverses le socle
 const MODULE_PAR_CHEMIN = [[/\/(meta|tiktok)\//, 'sea']];
@@ -77,6 +79,7 @@ const PROFILS = {
   seo: { nom: 'gpsem-seo', libelle: 'GPSEM SEO', domaine: 'SEO (et SEO local)', permis: ['seo', 'local'], defaut: ['seo'] },
   ads: { nom: 'gpsem-ads', libelle: 'GPSEM Ads', domaine: 'publicité (conseil et création de campagnes)', permis: ['sea', 'campagnes'], defaut: ['sea', 'campagnes'] },
   netlinking: { nom: 'gpsem-netlinking', libelle: 'GPSEM Netlinking', domaine: 'netlinking (spots, achat de liens, liens suivis)', permis: ['netlinking'], defaut: ['netlinking'] },
+  tracking: { nom: 'gpsem-tracking', libelle: 'GPSEM Tracking', domaine: 'tracking (tags, consentement, GTM, conversions mesurées)', permis: ['tracking'], defaut: ['tracking'] },
 };
 const PROFIL = PROFILS[{ liens: 'netlinking' }[String(process.env.GPSEM_PROFIL || '').trim().toLowerCase()] || String(process.env.GPSEM_PROFIL || '').trim().toLowerCase()] || null;
 function modulesDuProfil() {
@@ -266,6 +269,8 @@ Liens obtenus soi-même (ninjalinking, JAMAIS d'achat) : getLinkSpotSettings (ci
    importSelectedLocations (100 au plus, accord), getVerificationState, bulkResolveOutsideChanges (demander pour une gravité haute),
    listCitations / saveCitation (ce que l'utilisateur a vu), searchCities. Recherche transversale : searchLocalEverything ;
    notifications du module : listLocalNotifications.`],
+  ['sea', `Ne jamais conclure sur des conversions en baisse ou en hausse brutale sans avoir fait vérifier le tracking (serveur gpsem-tracking :
+audit des tags, du consentement et des conversions envoyées) : une chute vient souvent d'un tag cassé, pas de la performance.`],
   ['sea', `SEA (publicité : Google Ads, Microsoft Ads, Meta Ads, LinkedIn et autres régies connectées dans GPSEM) : getAdsCampaigns pour l'état
 des comptes, getAdsAudit / runAdsAudit (note sur 100, priorités chiffrées en €/30 j), diagnoseAdsChange AVANT de conseiller un changement après
 une baisse (délai de conversion, suivi, demande, budget, saison), getAdsSafetyRules pour expliquer pourquoi une règle ne propose rien ou
@@ -401,17 +406,23 @@ Terminer chaque catégorie par une synthèse (updateOpquastCategory comment). To
   ['netlinking', `Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autorisé, plafonds, dépense du mois, crédit, coût des options, ancres déjà utilisées),
 choisir les pages cibles à partir des données GPSEM (pages performantes fragilisées, mots-clés en page 2, backlinks perdus), puis présenter la commande
 (URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.`],
-  ['socle', `AUDIT DU TRACKING (tags, consentement, conversions) — à faire avant d'analyser des chiffres GA4 / Google Ads / Meta, après une refonte, un
-changement de bandeau de cookies ou de conteneur GTM, ou quand les conversions chutent. startTrackingAudit (sans urls = échantillon automatique ; ajouter les pages
-de confirmation « merci » / commande validée), relire getTrackingAudit jusqu'à etat = ok. Lire ensuite, dans cet ordre : 1) le résumé (score par famille,
-anomalies critiques) ; 2) section=consentement : outils partis avant le choix ou après un refus (risque CNIL), mode du Consent Mode (absent = Google Ads et GA4
-perdent la modélisation et les audiences dans l'EEE) ; 3) section=croisements : actions de conversion du compte Google Ads introuvables sur le site ou inconnues
-du compte ; 4) getTrackingContainer sur le conteneur GTM et la balise Google (événements clés GA4, tags sans consentement, HTML personnalisé masqué = possible
-piratage) ; 5) section=ecommerce et section=evenements (paramètres manquants, doublons de page_view ou de purchase) ; 6) getTrackingPlan : plan de marquage à
-proposer, format=gtm pour un conteneur à importer. Preuve d'une anomalie : getTrackingAuditPage part=requetes (hits=true, fournisseur=…) ou part=bandeau.
-Après une correction, relancer l'audit puis compareTrackingAudits ; tracer la correction dans l'historique (addSiteHistorique code 100-09-001).
-Pour un suivi continu : updateTrackingSettings monitoring=true (alerte dans GPSEM si un tag disparaît ou si le consentement se dégrade). Ne jamais conclure
-sur des conversions Ads / GA4 en baisse sans avoir vérifié le tracking : une chute vient souvent d'un tag cassé, pas de la performance.`],
+  ['tracking', `AGENT TRACKING — vérifier que ce que le site mesure est juste et conforme, avant que quiconque n'en tire des conclusions.
+Quand : avant d'analyser des chiffres GA4 / Google Ads / Meta, après une refonte, un changement de bandeau de cookies ou de conteneur GTM, quand
+les conversions chutent ou doublent sans raison. 1) startTrackingAudit (sans urls = échantillon automatique ; ajouter les pages de confirmation
+« merci » / commande validée ; journey=true sur une boutique pour le parcours fiche → panier → début de commande, jamais jusqu'au paiement ;
+speed_cost=true pour le coût de chaque tag en vitesse), relire getTrackingAudit jusqu'à etat = ok. 2) Lire dans cet ordre : le résumé (score par
+famille, anomalies critiques) ; section=consentement (outils partis avant le choix ou après un refus : risque CNIL ; Consent Mode absent = Google
+Ads et GA4 perdent la modélisation et les audiences dans l'EEE) ; section=croisements (actions de conversion du compte Google Ads introuvables
+sur le site, inconnues du compte, ou principales encore sur Universal Analytics) ; getTrackingContainer sur le conteneur GTM et la balise Google
+(événements clés GA4, tags sans consentement, HTML personnalisé masqué = possible piratage) ; section=parcours (événement absent ou incohérent à
+une étape) ; section=ecommerce et section=evenements (paramètres manquants, doublons de page_view ou de purchase) ; section=performance (coût
+des tags). 3) Preuve d'une anomalie : getTrackingAuditPage part=requetes (hits=true, fournisseur=…) ou part=bandeau. 4) Relier aux effets :
+getAdsConversionTracking (santé des conversions du compte), compareAdsPlatformsWithGa4, queryAnalytics (GA4 libre), getAttribution.
+5) Proposer la correction : getTrackingPlan (plan de marquage ; format=gtm pour un conteneur à importer en fusion, jamais publié par GPSEM),
+validateTrackingPlan quand l'utilisateur l'approuve. 6) Après la correction : relancer l'audit, compareTrackingAudits, tracer dans l'historique
+(addSiteHistorique code 100-09-001). Suivi continu : updateTrackingSettings monitoring=true (alerte dans GPSEM si un tag disparaît, si un
+identifiant change ou si le consentement se dégrade). Chaque visite de l'audit compte comme une visite dans le GA4 du site : conseiller de
+déclarer 149.202.91.234 en trafic interne.`],
   ['socle', `Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), requestIndexing (API Indexing de Google, quota), runIndexTests sur beaucoup de pages (quota Search Console), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), runLinkCorrection (modifie les contenus et les renvoie au CMS), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
 createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateContentEditors, updateLegalNotice,
 updatePage avec editor=elementor ou editor=classique (remplace la mise en page de la page).

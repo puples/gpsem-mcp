@@ -57,7 +57,7 @@ Le paquet contient quatre serveurs nommés, un par agent. **Le même jeton sert 
 
 | Serveur | Commande | Modules (socle toujours) | Outils |
 |---|---|---|---|
-| **gpsem-seo** | `npx -y -p github:puples/gpsem-mcp gpsem-seo` | `seo` ; `local` sur demande (`GPSEM_MODULES=seo,local`) | 189 |
+| **gpsem-seo** | `npx -y -p github:puples/gpsem-mcp gpsem-seo` | `seo` ; `local` sur demande (`GPSEM_MODULES=seo,local`) | 193 |
 | **gpsem-ads** | `npx -y -p github:puples/gpsem-mcp gpsem-ads` | `sea` (conseil), `campagnes` (création) ; un seul des deux avec `GPSEM_MODULES` | 170 |
 | **gpsem-tracking** | `npx -y -p github:puples/gpsem-mcp gpsem-tracking` | `tracking` (audit des tags, du consentement et des conversions mesurées) + lectures utiles : santé des conversions Google Ads, régies face à GA4, GA4 libre, attribution | 58 |
 | **gpsem-netlinking** | `npx -y -p github:puples/gpsem-mcp gpsem-netlinking` | `netlinking` (spots, achat MyBack.link, liens suivis) + lectures Search Console pour choisir les pages | 62 |
@@ -98,17 +98,17 @@ Le token reste sur votre poste : le serveur MCP appelle directement l'API GPSEM,
 
 ### Modules et mode découverte
 
-Avec tous les modules, le serveur décrit près de 500 outils à l'assistant au début de chaque conversation, soit environ 125 000 tokens. Ne chargez que les modules utiles :
+Avec tous les modules, le serveur décrit plus de 500 outils (523 à la 0.26.0) à l'assistant au début de chaque conversation, soit environ 145 000 tokens. Ne chargez que les modules utiles :
 
 | Module | Contenu | Outils | ≈ tokens |
 |---|---|---|---|
 | socle (toujours) | compte, sites, pages, historique, rapports, outils GPSEM, connaissances | 42 | 12 000 |
-| `seo` | Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille | 147 | 43 000 |
-| `sea` | conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, changements à valider | 94 | 24 000 |
-| `campagnes` | création de campagnes Google Ads : fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display / Shopping, audiences, lieux, mots-clés, images, création en pause | 28 | 11 500 |
+| `seo` | Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille | 151 | 44 500 |
+| `sea` | conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, changements à valider ; mesure (historique long, table hebdomadaire, impact v2, contrôle synthétique, modèle de mix média, tests géographiques) | 114 | 30 500 |
+| `campagnes` | création de campagnes Google Ads : fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display / Shopping, audiences, lieux, mots-clés, images, création en pause | 31 | 13 000 |
 | `local` | SEO local : établissements, fiches, avis, géogrille, publications | 179 | 43 500 |
-| `netlinking` | backlinks, achat MyBack.link, spots de liens | 15 | 4 000 |
-| `tracking` | audit du tracking : tags, consentement, GTM publié, conversions, parcours d'achat, coût des tags, plan de marquage, surveillance | 12 | 5 000 |
+| `netlinking` | backlinks, achat MyBack.link, spots de liens | 20 | 6 000 |
+| `tracking` | audit du tracking : tags, consentement, GTM publié, conversions, parcours d'achat, coût des tags, plan de marquage, surveillance | 16 | 5 800 |
 
 Les consignes envoyées à l'assistant ne contiennent que celles des modules chargés. Un outil d'un module absent n'est pas appelable ; l'assistant indique alors quel module ajouter.
 

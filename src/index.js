@@ -45,7 +45,7 @@ const METHODES = ['get', 'post', 'put', 'patch', 'delete'];
 const MODULES = {
   socle: { libelle: 'compte, sites, historique, rapports, outils GPSEM, connaissances', tags: ['Auth', 'Compte', 'Entreprise', 'Site', 'Historique', 'Rapports', 'Outils GPSEM', 'Connaissances'] },
   seo: { libelle: 'Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille', tags: ['Analyses', 'Sources de données', 'Audit', 'Contenus du site', 'Screaming Frog', 'Indexation', 'Rédaction', 'Synchronisation CMS', 'Opquast', 'Veille et tendances'] },
-  sea: { libelle: 'conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok, changements à valider', tags: ['Publicité'] },
+  sea: { libelle: 'conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok, changements à valider, mesure (historique long, MMM, tests)', tags: ['Publicité', 'Mesure'] },
   campagnes: { libelle: 'création de campagnes Google Ads (fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display, lieux, mots-clés, images, création en pause)', tags: [] },
   local: { libelle: 'SEO local : établissements, fiches, avis, géogrille, publications', tags: ['SEO local'] },
   netlinking: { libelle: 'backlinks, achat MyBack.link, spots de liens', tags: ['Backlinks', 'Spots de liens'] },
@@ -178,6 +178,15 @@ chercher ce qui s'est passé à ce moment : sur le site (historique, archives), 
    nouveau test quelques jours plus tard. Tester les pages utiles, pas tout le site à répétition (quota Search Console de 2 000
    inspections par jour et par site) ; une page non indexée qui reste non indexée malgré une demande est un problème de qualité ou
    de maillage, pas d'envoi : le dire et chercher la cause (contenu, liens reçus, doublon, canonique).`],
+  ['seo', `MESURER L'EFFET D'UNE ACTION SEO — après un changement daté (titres, contenu, maillage, migration, mise à jour Google) :
+getCounterfactualImpact donne tout de suite un premier aperçu (régression) ; startImpactMeasurementV2 (même date, même cible : site, url,
+dossier) fait la mesure v2 sur les serveurs de GPSEM : relire getMeasurementJob jusqu'à statut = termine. Conclure seulement si l'issue est
+resultat ET que l'intervalle de resume.cumul.relatif exclut zéro ET que p_permutation ≤ 0,1 ; indicatif = tendance à confirmer, donnée avec
+son intervalle ; refuse = période avant trop courte (au moins 28 jours et 3 fois la période après) : dire quelle date ou quelle durée choisir.
+Tests fractionnés (getSeoSplitTests) : startSeoTestMeasurement method=synthetique (contrôle synthétique : copie du groupe test faite des pages
+témoins ; il faut au moins 5 pages témoins avec des clics, et 9 pour que les placebos dans l'espace puissent conclure) ; attendre 3 à 4
+semaines après le changement. Ne jamais attribuer un effet à une action si une autre a eu lieu en même temps (getSiteHistorique) ni conclure
+sur moins de deux semaines de recul. Si les conversions sont en jeu, faire d'abord vérifier le tracking (serveur gpsem-tracking).`],
   ['netlinking', `AGENT NETLINKING — obtenir des liens utiles, au bon rythme, et prouver leur effet :
 a. Choisir les pages à renforcer avant les liens : querySearchConsole (dimensions query + page : requêtes en positions 8 à 20 avec des
    impressions = pages proches du haut), getLostPages (pages qui ont perdu leurs classements), getKeywordGainsLosses, getPage /
@@ -292,6 +301,36 @@ changent) ; dry_run=true pour faire vérifier par Google. Extraits : en-tête de
 Rôle de conseil : diagnostiquer, expliquer, proposer des changements dans la file ; juger un CPA ou un ROAS face à la fiche économique
 (getAdsEconomics : cibles et équilibre). Créer une nouvelle campagne relève du module « campagnes » (agent de création) : s'il n'est pas
 chargé, le dire à l'utilisateur plutôt que d'improviser.`],
+  ['sea', `AGENT MESURE — dire ce que la publicité apporte vraiment (pas ce que les régies s'attribuent), et refuser de conclure quand les données
+ne le permettent pas. Trois issues partout : resultat (conclure), indicatif (donner le chiffre AVEC son intervalle et ses réserves, jamais
+comme base d'une répartition de budget), refuse (aucun chiffre : dire ce qui manque et la date_possible si elle existe).
+0. Avant de lire un MMM ou une baisse de conversions : faire vérifier le tracking (serveur gpsem-tracking, startTrackingAudit) ; un tag cassé
+ou une action de conversion d'un autre site fausse tout le reste.
+1. Données : getMeasurementHistory (sources reliées, jours gardés, reprise : Google Ads 36 mois, Microsoft Ads, GA4 depuis la création de la
+propriété, Search Console 16 mois marque / hors marque) ; reprise incomplète → startMeasurementBackfill, ou attendre (elle avance chaque heure).
+getWeeklyMeasurementTable : une ligne par semaine et canal (media, kpi, controle) ; format=wide pour une série prête à modéliser.
+listMeasurementCampaigns : canal de chaque campagne ; autre_site = 1 → campagne d'un autre site du même compte, non comptée ; corriger un
+canal mal rangé avec setMeasurementCampaignChannel.
+2. Éligibilité AVANT tout modèle : getMeasurementReadiness (semaines communes dépense + KPI, semaines par paramètre, variation de la dépense,
+volume du KPI, corrélation et VIF entre canaux…). refuse → rapporter le message tel quel et la date_possible ; ne pas lancer de modèle.
+3. Impact d'un événement daté (campagne coupée, refonte, mise à jour Google) : startImpactMeasurementV2 puis getMeasurementJob jusqu'à
+statut = termine (toutes les 5 à 10 s). Lire resume.cumul (effet, relatif et intervalle), p_permutation (≤ 0,1 = significatif), sens,
+alertes, rapport. La ridge immédiate (getCounterfactualImpact) sert de premier aperçu et de secours si le calcul échoue.
+4. Test SEO fractionné (getSeoSplitTests) : startSeoTestMeasurement method=synthetique (contrôle synthétique, poids des pages témoins,
+p_espace et p_temps ; sous 9 pages témoins seul le test dans le temps peut conclure) ou method=impact.
+5. MMM : getMarketingMixModel (suffisance + dernier modèle) ; startMarketingMixModel seulement si la suffisance n'est pas refusée (un
+modèle à la fois, environ une minute), puis getMeasurementJob. Lecture : CLASSER les canaux par leur apport et leur ROI (ou coût par
+conversion incrémentale) avec P10–P90, plutôt que citer un ROAS seul ; deux canaux dont les intervalles se recouvrent ne sont pas
+départagés ; mROI (rendement du prochain euro) très en dessous du ROI moyen = canal saturé ; issu_hypotheses = true → le modèle n'a rien
+appris sur ce canal, ne rien en conclure ; courbes valables jusqu'à 1,5 × la dépense hebdomadaire maximale observée, jamais au-delà ;
+diagnostics (R-hat, divergences, wmape_13_semaines) dans controles_apres. KPI = conversions Ads (site sans GA4) → l'effet mesuré est celui
+que la régie s'attribue : le dire. Le MMM voit des corrélations : une promotion ou une saison mal captée peut passer pour un effet publicitaire.
+6. Tests géographiques : getGeoTestEligibility (au moins 20 zones ou un pays entier, campagnes qui dépensent). C'est la preuve la plus
+directe et elle sert à caler le MMM ; s'il est refusé, dire pourquoi (ciblage trop étroit, campagnes arrêtées).
+Ne JAMAIS : donner un ROI, un effet ou une recommandation de budget à partir d'un calcul refusé ; présenter un résultat indicatif sans son
+intervalle ni le mot « indicatif » ; conclure « la publicité ne sert à rien » ou « ce canal rapporte X » quand l'intervalle contient zéro ou
+est très large ; extrapoler au-delà des dépenses observées ; changer un budget sur la seule foi d'un MMM sans accord explicite (passer par
+la file à valider, addAdsProposals).`],
   ['campagnes', `CRÉER UNE CAMPAGNE GOOGLE ADS (ex. « une campagne pour une entreprise d'électricité industrielle en Haute-Savoie, uniquement en local ») :
 0. Type (createCampaignPlan type) : SEARCH pour capter une demande exprimée (service local, B2B, urgence) — presque toujours le premier ;
    PERFORMANCE_MAX pour un e-commerce ou un compte qui a déjà au moins 30 conversions par mois et un suivi sain (sinon il dépense à

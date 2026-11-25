@@ -42,7 +42,7 @@ const METHODES = ['get', 'post', 'put', 'patch', 'delete'];
  * Une opération peut fixer son module elle-même avec x-mcp-module ; un tag inconnu tombe dans le socle (l'outil n'est jamais perdu).
  */
 const MODULES = {
-  socle: { libelle: 'compte, sites, historique, rapports, outils GPSEM, connaissances', tags: ['Auth', 'Compte', 'Entreprise', 'Site', 'Historique', 'Rapports', 'Outils GPSEM', 'Connaissances'] },
+  socle: { libelle: 'compte, sites, historique, rapports, outils GPSEM, connaissances, audit du tracking', tags: ['Auth', 'Compte', 'Entreprise', 'Site', 'Historique', 'Rapports', 'Outils GPSEM', 'Connaissances', 'Tracking'] },
   seo: { libelle: 'Search Console, GA4, audit, contenus, Screaming Frog, indexation, rédaction, synchro CMS, Opquast, veille', tags: ['Analyses', 'Sources de données', 'Audit', 'Contenus du site', 'Screaming Frog', 'Indexation', 'Rédaction', 'Synchronisation CMS', 'Opquast', 'Veille et tendances'] },
   sea: { libelle: 'conseil publicité : analyse et pilotage Google Ads, Microsoft Ads, Meta Ads, autres régies, intérêts Meta / TikTok, changements à valider', tags: ['Publicité'] },
   campagnes: { libelle: 'création de campagnes Google Ads (fiche économique, plans Search / Performance Max / Demand Gen / YouTube / Display, lieux, mots-clés, images, création en pause)', tags: [] },
@@ -401,6 +401,17 @@ Terminer chaque catégorie par une synthèse (updateOpquastCategory comment). To
   ['netlinking', `Achat de backlinks (MyBack.link) : lire d'abord getMybacklinkStatus (achat autorisé, plafonds, dépense du mois, crédit, coût des options, ancres déjà utilisées),
 choisir les pages cibles à partir des données GPSEM (pages performantes fragilisées, mots-clés en page 2, backlinks perdus), puis présenter la commande
 (URL, mots-clés, nombre d'articles, options) et n'appeler orderBacklinks qu'après un accord explicite : c'est un achat réel.`],
+  ['socle', `AUDIT DU TRACKING (tags, consentement, conversions) — à faire avant d'analyser des chiffres GA4 / Google Ads / Meta, après une refonte, un
+changement de bandeau de cookies ou de conteneur GTM, ou quand les conversions chutent. startTrackingAudit (sans urls = échantillon automatique ; ajouter les pages
+de confirmation « merci » / commande validée), relire getTrackingAudit jusqu'à etat = ok. Lire ensuite, dans cet ordre : 1) le résumé (score par famille,
+anomalies critiques) ; 2) section=consentement : outils partis avant le choix ou après un refus (risque CNIL), mode du Consent Mode (absent = Google Ads et GA4
+perdent la modélisation et les audiences dans l'EEE) ; 3) section=croisements : actions de conversion du compte Google Ads introuvables sur le site ou inconnues
+du compte ; 4) getTrackingContainer sur le conteneur GTM et la balise Google (événements clés GA4, tags sans consentement, HTML personnalisé masqué = possible
+piratage) ; 5) section=ecommerce et section=evenements (paramètres manquants, doublons de page_view ou de purchase) ; 6) getTrackingPlan : plan de marquage à
+proposer, format=gtm pour un conteneur à importer. Preuve d'une anomalie : getTrackingAuditPage part=requetes (hits=true, fournisseur=…) ou part=bandeau.
+Après une correction, relancer l'audit puis compareTrackingAudits ; tracer la correction dans l'historique (addSiteHistorique code 100-09-001).
+Pour un suivi continu : updateTrackingSettings monitoring=true (alerte dans GPSEM si un tag disparaît ou si le consentement se dégrade). Ne jamais conclure
+sur des conversions Ads / GA4 en baisse sans avoir vérifié le tracking : une chute vient souvent d'un tag cassé, pas de la performance.`],
   ['socle', `Actions à effet réel (demander confirmation à l'utilisateur avant) : orderBacklinks (achat), requestIndexing (API Indexing de Google, quota), runIndexTests sur beaucoup de pages (quota Search Console), writeFromExternalContent (rédaction), launchScreamingFrogCrawl (charge le serveur de crawl), runLinkCorrection (modifie les contenus et les renvoie au CMS), createSite (consomme le quota), createPage / updatePage avec push_to_cms, pushPageToCms, syncSite,
 createContent / writeContentIdea (rédaction automatique), createAuditReport, updateCompanyInfo, updateSiteSettings, updateContentEditors, updateLegalNotice,
 updatePage avec editor=elementor ou editor=classique (remplace la mise en page de la page).
